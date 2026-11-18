@@ -146,12 +146,12 @@ The access-control test is built first, with TDD, and is **persistent**. It disc
 
 ### Acceptance criteria
 
-- [ ] The access test discovers dashboard routes automatically, with no hand-maintained list of routes.
-- [ ] The access test fails when a new dashboard route can't be walked, so a route can't go untested.
-- [ ] Anonymous users are redirected to login, and customers get 403, on every dashboard route and method.
-- [ ] `/admin/` refuses plain staff and admits the superuser.
-- [ ] The staff product list shows "Inactive" and "Low Stock" badges in text.
-- [ ] `seed_demo` includes inactive and low-stock products to show the badges.
+- [x] The access test discovers dashboard routes automatically, with no hand-maintained list of routes.
+- [x] The access test fails when a new dashboard route can't be walked, so a route can't go untested.
+- [x] Anonymous users are redirected to login, and customers get 403, on every dashboard route and method.
+- [x] `/admin/` refuses plain staff and admits the superuser.
+- [x] The staff product list shows "Inactive" and "Low Stock" badges in text.
+- [x] `seed_demo` includes inactive and low-stock products to show the badges.
 
 ### TDD
 

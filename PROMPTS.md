@@ -27,6 +27,107 @@ Each entry has this shape:
     - **Outcome:** what was built and what was kept
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
+## 2026-11-18 — Buff Shop: Phase 3/18, Dashboard shell and access control
+
+### Prompts
+
+1. The `/implement` skill, given `buff-shop.md phase 3`.
+2. Approved the brief with adjustments: (1) the access test must cover more
+   than GET and POST: detect other supported methods and make sure every
+   method is protected, never assuming GET protection covers POST; (2)
+   `/admin/` must refuse staff and customers on the server, keep normal
+   admin for the superuser, and not break the Category and Product
+   registrations; (3) keep the badge wording Out of Stock / Low Stock /
+   In Stock, with Out of Stock counting toward the low-stock alert total
+   while staying a separate status; (4) every new dashboard URL must have a
+   URL name, a registered fixture for its parameters, an expected HTTP
+   method and a staff authorisation test.
+3. Approved RED 1, asking that OPTIONS and TRACE be handled carefully: if
+   they can't reliably produce the login redirect, test that they are
+   refused rather than weakening the requirement.
+4. Approved RED 2, asking that the customer be created with
+   `is_staff=False` and `is_superuser=False` explicitly.
+5. Approved RED 3 and the recommendation to broaden tests 1 and 2: routes
+   with no parameters are tested directly even if unregistered, routes with
+   parameters must be registered, an unbuildable route is never silently
+   skipped, and discovery must follow nested URL files recursively.
+
+### Summary
+
+- **Outcome:** staff get a `/dashboard/` home and a product list of every
+  product with "In Stock" / "Low Stock" / "Out of Stock" and "Inactive"
+  badges (icon plus words). One staff check guards the dashboard, `/admin/`
+  is superuser-only, and a persistent access test walks every dashboard
+  route with all eight HTTP methods. 155 tests pass with 100% line coverage;
+  `ruff check` and `ruff format --check` are clean.
+- **Changes:**
+  - `dashboard/`: new app. `access.py` (`StaffRequiredMixin`,
+    `SuperuserRequiredMixin`), `views.py` (home and product list, 25 per
+    page, all products), `urls.py`.
+  - `dashboard/tests/`: `walk.py` (route discovery, walk planning and the
+    request checks), `routes.py` (the registry each new route must join),
+    `test_access.py` (the persistent access test), `test_walk.py` and
+    `walk_fixture_urls.py` (tests of the walk itself), `test_pages.py`.
+  - `config/admin.py`, `config/apps.py`: new. A superuser-only admin site
+    and login form, installed as the default `admin.site`;
+    `config/settings/base.py` uses it in place of `django.contrib.admin` and
+    adds the `dashboard` app. `config/urls.py` includes `/dashboard/`.
+  - `config/tests/test_admin_site.py`: new. Anonymous, customer and staff
+    refusal (pages, a data change, the admin login form) and full superuser
+    access.
+  - `accounts/tests/factories.py`: `UserFactory` sets `is_staff` and
+    `is_superuser` to False explicitly.
+  - Templates: `templates/dashboard/{base,home,product_list,_product_badges}.html`,
+    `templates/403.html` ("Access denied"), a staff-only "Dashboard" link
+    in `templates/base.html`, and icons `gauge`, `boxes-stacked`, `ban`.
+  - `tailwind/source.css`: a `dash-link` utility. `static/css/site.css`
+    rebuilt (it was an unminified watcher build before the phase).
+  - Docs: `docs/{architecture,business-rules,frontend,testing}.md` and
+    `CLAUDE.md`. The Phase 3 acceptance criteria are ticked in the plan.
+- **TDD:**
+  - `test_dashboard_routes_redirect_anonymous_to_login`: RED on an
+    assertion (16 requests let through), then GREEN with the mixin.
+  - `test_dashboard_routes_forbid_customers` and
+    `test_every_dashboard_route_is_walkable` passed on first run, because
+    the earlier GREEN or the correct registry already satisfied them. Each
+    was shown failing on its assertion against a deliberate break (a check
+    weakened to "logged in is enough"; two temporary bad routes), then
+    restored.
+- **Decisions:**
+  - The staff check is a `UserPassesTestMixin` subclass placed first in
+    each view's bases, so it runs in `dispatch()` for every method before
+    any lookup.
+  - Discovery covers the `dashboard` namespace and any route whose path
+    starts with `dashboard/`.
+  - The registry records methods, sample kwargs and `superuser_only`. The
+    test finds routes on its own; the registry is a checklist it enforces,
+    which is how the plan's "no hand-maintained list" criterion is met.
+  - `/admin/` uses Django's documented custom-default-site pattern, and
+    its login form also refuses non-superusers.
+  - Staff product list: 25 per page, sorted by name, with columns Product,
+    Status, Stock, Low-stock threshold, Price, Category in a scrollable
+    region.
+  - `seed_demo` needed no change: it already has inactive, low-stock and
+    out-of-stock products, now checked by a dashboard test.
+- **Deviations:**
+  - The user's adjustments were all built: all eight methods walked;
+    admin refusal tested for every role including form posts and login;
+    the registry requirements; the explicit customer flags; broader
+    tests 1 and 2 and the nested-include self-test.
+  - OPTIONS and TRACE needed no special handling: they go through
+    `dispatch()`, so they get the same login redirect and 403.
+- **Sideways:**
+  - The RED 3 demonstration showed that tests 1 and 2 skipped an
+    unregistered, unguarded route, and only test 3 caught it. Raised with
+    the user and fixed by broadening the walk; the same bad routes then
+    failed all three tests.
+  - The fake URL setup for the walk self-tests lacked the catalog URLs,
+    which the new 403 page links to. One self-test errored until they were
+    added.
+  - Screenshots at 1280 px and 360 px showed the threshold note wrapping
+    and the Status column scrolled off-screen on a phone. The threshold got
+    its own column and Status moved next to the product name.
+
 ## 2026-11-18 — Buff Shop: Phase 2/18, Read-only catalog and first `seed_demo`
 
 ### Prompts

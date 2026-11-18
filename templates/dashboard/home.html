@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Staff dashboard{% endblock %}
+{% block dashboard_content %}
+<h1 class="text-3xl uppercase sm:text-4xl">Staff dashboard</h1>
+<p class="mt-2 max-w-2xl text-lg">Welcome, {{ user.first_name }}. Run the shop from here.</p>
+
+<ul class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2" role="list">
+  <li class="card">
+    <h2 class="flex items-center gap-2 text-xl">
+      {% include "icons/boxes-stacked.svg" with class="h-5 w-5" %}
+      <a href="{% url 'dashboard:product_list' %}">Products</a>
+    </h2>
+    <p class="mt-2">Every product, active or not, with its stock and status.</p>
+  </li>
+</ul>
+{% endblock %}

@@ -20,6 +20,7 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 ## Roles
 - `is_staff` = shop staff ("Admin" in the brief) → `/dashboard/`.
 - `is_superuser` only: status override, managing staff, Django `/admin/`. Plain staff are blocked from `/admin/`.
+- **`/admin/` is superuser-only** through `config/admin.py`'s `SuperuserAdminSite` (`has_permission` needs an active superuser; its login form refuses non-superusers too). `config/apps.py`'s `SuperuserAdminConfig` replaces `django.contrib.admin` in `INSTALLED_APPS` and makes it the default `admin.site`, so `@admin.register` works as usual.
 - Categories are edited only in `/admin/`.
 
 ## Data rules
@@ -30,7 +31,7 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 
 ## Layout
 - `config/settings/{base,dev,prod}.py`, `config/urls.py` (includes each app's namespaced URLs).
-- Apps: `accounts/`, `catalog/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
+- Apps: `accounts/`, `catalog/`, `dashboard/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
 - `demo/` has no models: it holds `seed_demo` (`demo/seed.py` has the data and rules, the command only prints).
 - Project templates in `templates/` (`base.html`, `includes/`, `icons/`, one folder per app). Tailwind source in `tailwind/source.css`.
 
@@ -39,7 +40,9 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 |---|---|
 | `catalog:index` | `/`: the catalog (`ProductListView`), 12 per page, `?page=N` |
 | `accounts:signup` / `accounts:login` / `accounts:logout` (POST only) | `/accounts/signup/`, `/accounts/login/`, `/accounts/logout/` |
-| admin | `/admin/` |
+| `dashboard:home` | `/dashboard/`: staff home (`DashboardHomeView`) |
+| `dashboard:product_list` | `/dashboard/products/`: every product incl. inactive, 25 per page, `?page=N` |
+| admin | `/admin/`, superuser only |
 
 ## Catalog
 - `catalog.Category` (unique name; Textbook, Merchandise and Lab Kit added by data migration `0002`). Edited only in `/admin/`.
@@ -48,6 +51,12 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 - **`catalog.models.stock_status(stock, threshold)`** returns a `StockStatus` choice: `.value` is the stable id (`in_stock`, `low_stock`, `out_of_stock`) and `.label` is the customer wording. `product.stock_status` uses the product's own threshold.
 - Images (`catalog/images.py`): `validate_product_image` (Pillow-detected JPEG/PNG/WebP, max 5 MB) and `product_image_path` (random `products/<uuid>.<ext>`, extension from the detected format). Resizing comes in Phase 13.
 - Admin: Category and Product are registered; product stock is read-only there.
+
+## Dashboard
+- **The one staff check** is `dashboard/access.py`: `StaffRequiredMixin` (active `is_staff`) and `SuperuserRequiredMixin` (also `is_superuser`), built on `UserPassesTestMixin`. Anonymous → redirect to login with `?next=`; logged-in without the role → 403 (`templates/403.html`, "Access denied").
+- **Every dashboard view is class-based and puts the mixin first** in its bases, so the check runs in `dispatch()` before any handler, for every HTTP method, and before any object lookup (a customer gets 403, not 404).
+- **Every new dashboard route must be registered** in `dashboard/tests/routes.py` (name, methods, sample kwargs, `superuser_only`), or the access test fails. See [testing.md](testing.md).
+- Staff product queries do **not** use `active()`: staff see every product.
 
 ## Accounts
 - `accounts.User` (`AbstractUser` with `username = None`). `USERNAME_FIELD = "email"`, first and last name required.

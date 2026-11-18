@@ -90,6 +90,9 @@
 @utility nav-link {
   @apply inline-flex min-h-11 items-center gap-2 rounded px-3 py-2 font-display text-sm font-medium uppercase tracking-wider text-white no-underline hover:bg-maroon-800 hover:text-white;
 }
+@utility dash-link {
+  @apply inline-flex min-h-11 items-center gap-2 rounded px-3 py-2 font-display text-sm font-medium uppercase tracking-wider text-maroon-900 no-underline hover:bg-maroon-50 hover:text-maroon-900 aria-[current=page]:bg-maroon-900 aria-[current=page]:text-white;
+}
 @utility card {
   @apply rounded border border-line bg-white p-6 shadow-sm;
 }

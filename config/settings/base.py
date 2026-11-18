@@ -9,7 +9,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    # Django admin, superuser only (config/admin.py).
+    "config.apps.SuperuserAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -18,6 +19,7 @@ INSTALLED_APPS = [
     # Project apps
     "accounts",
     "catalog",
+    "dashboard",
     "demo",
 ]
 

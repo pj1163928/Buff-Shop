@@ -25,6 +25,14 @@
         <nav aria-label="Account">
           <ul class="flex flex-wrap items-center gap-1">
             {% if user.is_authenticated %}
+              {% if user.is_staff %}
+                <li>
+                  <a href="{% url 'dashboard:home' %}" class="nav-link"{% if request.resolver_match.namespace == 'dashboard' %} aria-current="page"{% endif %}>
+                    {% include "icons/gauge.svg" %}
+                    Dashboard
+                  </a>
+                </li>
+              {% endif %}
               <li class="inline-flex min-h-11 items-center gap-2 px-3 text-sm">
                 {% include "icons/user.svg" %}
                 <span>Hi, {{ user.first_name }}</span>

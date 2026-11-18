@@ -1,0 +1,61 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Products · Dashboard{% endblock %}
+{% block dashboard_content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+  <div>
+    <h1 class="text-3xl uppercase sm:text-4xl">Products</h1>
+    <p class="mt-2 max-w-2xl">Every product, including inactive ones that customers can't see. "Low Stock" means at or below the product's own low-stock threshold. Scroll the table sideways on a small screen.</p>
+  </div>
+  {% if page_obj.paginator.count %}
+    <p class="text-muted">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}</p>
+  {% endif %}
+</div>
+
+{% if products %}
+  <div class="overflow-x-auto rounded border border-line bg-white shadow-sm" role="region" aria-labelledby="products-caption" tabindex="0">
+    <table class="w-full min-w-[44rem] text-left">
+      <caption id="products-caption" class="sr-only">Products, sorted by name</caption>
+      <thead class="bg-mist font-display text-sm uppercase tracking-wider">
+        <tr>
+          <th scope="col" class="px-4 py-3">Product</th>
+          <th scope="col" class="px-4 py-3">Status</th>
+          <th scope="col" class="px-4 py-3 text-right">Stock</th>
+          <th scope="col" class="px-4 py-3 text-right">Low-stock threshold</th>
+          <th scope="col" class="px-4 py-3 text-right">Price</th>
+          <th scope="col" class="px-4 py-3">Category</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-line">
+        {% for product in products %}
+          <tr id="product-{{ product.pk }}">
+            <th scope="row" class="px-4 py-3 font-bold">{{ product.title }}</th>
+            <td class="px-4 py-3">{% include "dashboard/_product_badges.html" with product=product %}</td>
+            <td class="px-4 py-3 text-right">{{ product.stock }}</td>
+            <td class="px-4 py-3 text-right">{{ product.low_stock_threshold }}</td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">${{ product.price }}</td>
+            <td class="px-4 py-3">{{ product.category.name }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+    <nav aria-label="Product pages" class="mt-8 flex flex-wrap items-center justify-between gap-3">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" rel="prev" class="btn-outline">{% include "icons/chevron-left.svg" %} Previous<span class="sr-only"> page</span></a>
+      {% else %}
+        <span></span>
+      {% endif %}
+      <p class="font-bold">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" rel="next" class="btn-outline">Next<span class="sr-only"> page</span> {% include "icons/chevron-right.svg" %}</a>
+      {% else %}
+        <span></span>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% else %}
+  <p class="card">There are no products yet.</p>
+{% endif %}
+{% endblock %}

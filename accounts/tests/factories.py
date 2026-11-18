@@ -15,6 +15,9 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.Sequence(lambda n: f"customer{n}@buffs.wtamu.edu")
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
+    # Explicit, so a customer never silently gains a role from a model default.
+    is_staff = False
+    is_superuser = False
     password = factory.PostGenerationMethodCall("set_password", DEFAULT_PASSWORD)
 
     @factory.post_generation

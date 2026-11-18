@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% comment %}Layout for every staff page: the dashboard menu, then the page.{% endcomment %}
+{% block content %}
+<div class="flex flex-col gap-6 lg:flex-row lg:gap-10">
+  <nav aria-label="Dashboard" class="shrink-0 lg:w-56">
+    <p class="mb-2 font-display text-sm uppercase tracking-wider text-muted">Staff dashboard</p>
+    <ul class="flex flex-wrap gap-2 lg:flex-col" role="list">
+      <li>
+        <a href="{% url 'dashboard:home' %}" class="dash-link"{% if request.resolver_match.view_name == 'dashboard:home' %} aria-current="page"{% endif %}>
+          {% include "icons/gauge.svg" %}
+          Home
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'dashboard:product_list' %}" class="dash-link"{% if request.resolver_match.view_name == 'dashboard:product_list' %} aria-current="page"{% endif %}>
+          {% include "icons/boxes-stacked.svg" %}
+          Products
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <div class="min-w-0 flex-1">
+    {% block dashboard_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

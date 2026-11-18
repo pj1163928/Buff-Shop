@@ -3,8 +3,8 @@
 A Django web app for a campus shop. Customers browse the catalog and order to pay at pickup. Staff manage stock, orders, pickup handover and analytics. CIDM 4360 final project.
 
 ## Current state
-- **Source of truth:** [prd/buff-shop.md](prd/buff-shop.md). **Plan:** [plans/buff-shop.md](plans/buff-shop.md) (18 phases, plus rules for every phase). Phases 1–2 are built (accounts; read-only catalog and first `seed_demo`).
-- **Next step:** implement Phase 3 of the plan.
+- **Source of truth:** [prd/buff-shop.md](prd/buff-shop.md). **Plan:** [plans/buff-shop.md](plans/buff-shop.md) (18 phases, plus rules for every phase). Phases 1–3 are built (accounts; read-only catalog and first `seed_demo`; dashboard shell, the persistent access test and superuser-only `/admin/`).
+- **Next step:** implement Phase 4 of the plan.
 
 ## Commands
 Python and packages are managed with `uv` (Django 6.1, Python 3.12+).
@@ -19,7 +19,7 @@ Python and packages are managed with `uv` (Django 6.1, Python 3.12+).
 - Every customer-facing product query goes through the shared active-products helper.
 - Every stock change goes through the one safe stock helper. Never rely on `select_for_update()`, because SQLite ignores it.
 - Order status changes only through the allowed-transitions table. Picked Up is reachable only through pickup verification.
-- Every `/dashboard/` view and action checks the staff role on the server. A customer requesting another user's order gets a 404.
+- Every `/dashboard/` view and action checks the staff role on the server (`StaffRequiredMixin` first in its bases), and every new dashboard route is registered in `dashboard/tests/routes.py`. A customer requesting another user's order gets a 404.
 - Never expose the pickup code in email, logs or the assistant.
 - Accessibility is WCAG 2.2 AA. Status is never shown by colour alone.
 - Commit only when asked. Add PROMPTS.md entries only when asked.

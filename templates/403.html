@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Access denied{% endblock %}
+{% block content %}
+<section aria-labelledby="denied-heading" class="card max-w-2xl">
+  <h1 id="denied-heading" class="flex items-center gap-3 text-3xl uppercase">
+    {% include "icons/ban.svg" with class="h-7 w-7" %}
+    Access denied
+  </h1>
+  <p class="mt-3 text-lg">This page is for Buff Shop staff only.</p>
+  <p class="mt-4"><a href="{% url 'catalog:index' %}">Back to the shop</a></p>
+</section>
+{% endblock %}

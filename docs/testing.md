@@ -7,6 +7,15 @@ Read when writing or running tests, or finishing a plan phase. Full list: [PRD �
 - **85% line coverage.**
 - Test behaviour through public interfaces: the Django test client for views, service functions for business rules.
 - Layout: `<app>/tests/test_*.py`. Factories are in `<app>/tests/factories.py` (`accounts.tests.factories`: `UserFactory`, `StaffFactory`, `SuperuserFactory`, `DEFAULT_PASSWORD`; `catalog.tests.factories`: `CategoryFactory` (get-or-create by name, reuses the seeded categories), `ProductFactory`).
+- Factories set `is_staff=False` and `is_superuser=False` explicitly on `UserFactory`, so a "customer" can never gain a role from a default.
+- **Persistent dashboard access test** (`dashboard/tests/`):
+  - `walk.py` discovers every route in the `dashboard` namespace or under `/dashboard/`, following nested `include()`s to any depth, and requests each one with **all eight HTTP methods**.
+  - `test_access.py`: anonymous → login redirect back to the exact URL; customer → 403; plain staff → 403 on `superuser_only` routes; staff/superuser let in on their registered methods.
+  - Routes needing no arguments are requested by path even if unregistered. A route that can't be built is a failure, never skipped.
+  - `test_every_dashboard_route_is_walkable` fails unless every route is named, class-based, uses `StaffRequiredMixin`, and is registered in `routes.py` with sample kwargs that build it, its exact methods, and the right `superuser_only`. Stale entries fail too.
+  - **Adding a dashboard route = add one `RouteSpec` to `dashboard/tests/routes.py`.** Never weaken or bypass this test.
+  - `test_walk.py` tests the walk itself against `walk_fixture_urls.py` (nested files, an unguarded route, a stray route, a superuser-only route).
+- `config/tests/test_admin_site.py`: `/admin/` refuses anonymous, customers and plain staff (pages, data changes and the admin login form) and works for the superuser.
 - `demo/tests/test_seed_demo.py` covers idempotency, protected data and the refusal under production settings (in a subprocess).
 - `config/tests/test_settings.py` checks the SQLite options and runs `check --deploy` under prod settings in a subprocess.
 - The test runner swaps in an in-memory mailer, so read `config.settings.dev` directly to check the dev mail config. Use `mailoutbox`/`mail.outbox` for sent mail.

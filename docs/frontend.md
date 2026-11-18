@@ -11,6 +11,10 @@ Read when writing templates, htmx interactions, CSS, images or the QR scanner.
 - **Icons:** Font Awesome Free 6.7.2 solid SVGs (CC BY 4.0, attributed in the footer), inlined from `templates/icons/`: `{% include "icons/user.svg" with class="h-5 w-5" %}`. They are `aria-hidden`, so always pair them with text. Add new ones from `https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/svgs/solid/<name>.svg` and add the same attributes.
 - Forms: `{% include "includes/field.html" with field=form.x %}` gives a visible label, errors at `<id>_error` and help at `<id>_helptext`. Django adds `aria-describedby` and `aria-invalid`. `includes/form_errors.html` is the `role="alert"` summary.
 - Stock status: `{% include "catalog/_stock_status.html" with status=product.stock_status %}` gives an icon plus the words; style branches on `status.value`, never on the label.
+- Dashboard pages extend `templates/dashboard/base.html` (side menu of `.dash-link`s with `aria-current="page"`; add each new section there) and fill `{% block dashboard_content %}`. Staff see a "Dashboard" link in the header.
+- Staff product badges: `{% include "dashboard/_product_badges.html" with product=product %}`.
+- Wide staff tables sit in an `overflow-x-auto` region with `role="region"`, `tabindex="0"` and `aria-labelledby` the caption, with the key column (status) right after the name so it stays visible at 360 px.
+- `templates/403.html` is the "Access denied" page.
 - Messages render in `base.html` in a `role="status"` region, with an icon and a visually hidden "Success:"/"Error:" prefix.
 - Layouts must work from 360 to 1920 px on current Chrome, Safari, Firefox and Edge.
 
