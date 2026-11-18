@@ -27,6 +27,42 @@ Each entry has this shape:
     - **Outcome:** what was built and what was kept
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
+## 2026-11-18 — README with overview, screenshots, setup and testing steps
+
+### Prompts
+
+1. "Go ahead and create and push a new README file keep it simple small and
+   easy to understand. include a section about how to test the application
+   and all the preperation steps needed, as well as a basic overview tih
+   pictures of what the site is and its use case"
+2. "Go ahead and add the PROMPTS.md for this entry as well"
+
+### Summary
+
+- **Outcome:** added a short `README.md` and pushed it to GitHub in commit
+  `d6864f2`. It has four sections:
+  - what the site is for, with three screenshots and a note that only
+    Phase 1 (accounts) is built so far
+  - one-time preparation: install git and uv, clone, `uv sync`, `migrate`,
+    and an optional `createsuperuser`
+  - running the site, including the first-run Tailwind download and the
+    Windows WinError 4551 workaround
+  - testing: `uv run pytest`, `uv run ruff check .`, and five quick browser
+    checks
+- **Changes:**
+  - `README.md` — new, written for anyone opening the repo for the first
+    time (instructor, classmates, new developers).
+  - `docs/images/home.png`, `docs/images/login.png`,
+    `docs/images/signup-phone.png` — screenshots of the running app, taken
+    with headless Firefox at 1280 px and 360 px wide.
+- **Deviations:** none. A PROMPTS.md entry wasn't written with the README,
+  because the project rule is to add entries only when asked. It was added
+  afterwards at the user's request.
+- **Sideways:** the first screenshot attempt saved nothing. Firefox didn't
+  write the relative output paths into the project, and `pkill -f` matched
+  its own shell. Using absolute paths and stopping the server by its process
+  ID fixed both.
+
 ## 2026-11-18 — Buff Shop: Phase 1/18, Project skeleton and email sign-up/login
 
 ### Prompts
