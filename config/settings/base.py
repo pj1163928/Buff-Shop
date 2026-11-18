@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     # Project apps
     "accounts",
     "catalog",
+    "demo",
 ]
 
 MIDDLEWARE = [
@@ -105,3 +106,14 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# --- Uploaded files (product images) ------------------------------------------
+# Kept apart from the committed static assets: media/ is gitignored and holds
+# only files uploaded through the app. Dev serves it from config/urls.py.
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# --- Demo data ----------------------------------------------------------------
+# seed_demo refuses to run unless this is True. Only dev.py turns it on, so the
+# command can never touch a production database (independent of DEBUG).
+ALLOW_DEMO_SEED = False

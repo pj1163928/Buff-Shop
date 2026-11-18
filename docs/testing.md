@@ -6,7 +6,8 @@ Read when writing or running tests, or finishing a plan phase. Full list: [PRD â
 - pytest-django, factory_boy (factories for users, categories, products, carts and orders), pytest-cov, ruff.
 - **85% line coverage.**
 - Test behaviour through public interfaces: the Django test client for views, service functions for business rules.
-- Layout: `<app>/tests/test_*.py`. Factories are in `<app>/tests/factories.py` (`accounts.tests.factories`: `UserFactory`, `StaffFactory`, `SuperuserFactory`, `DEFAULT_PASSWORD`).
+- Layout: `<app>/tests/test_*.py`. Factories are in `<app>/tests/factories.py` (`accounts.tests.factories`: `UserFactory`, `StaffFactory`, `SuperuserFactory`, `DEFAULT_PASSWORD`; `catalog.tests.factories`: `CategoryFactory` (get-or-create by name, reuses the seeded categories), `ProductFactory`).
+- `demo/tests/test_seed_demo.py` covers idempotency, protected data and the refusal under production settings (in a subprocess).
 - `config/tests/test_settings.py` checks the SQLite options and runs `check --deploy` under prod settings in a subprocess.
 - The test runner swaps in an in-memory mailer, so read `config.settings.dev` directly to check the dev mail config. Use `mailoutbox`/`mail.outbox` for sent mail.
 

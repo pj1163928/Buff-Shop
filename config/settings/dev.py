@@ -22,3 +22,6 @@ INSTALLED_APPS = [*INSTALLED_APPS, "django_tailwind_cli"]
 TAILWIND_CLI_VERSION = "4.3.5"
 TAILWIND_CLI_SRC_CSS = BASE_DIR / "tailwind" / "source.css"
 TAILWIND_CLI_DIST_CSS = "css/site.css"
+
+# seed_demo may run here (development and the localhost demo only).
+ALLOW_DEMO_SEED = True

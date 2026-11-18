@@ -3,7 +3,7 @@
 Read when creating apps, models, settings or URLs, or deciding where code belongs. Full detail: [PRD › Implementation Decisions](../prd/buff-shop.md#implementation-decisions).
 
 ## Stack
-- Django + SQLite, htmx, Pillow, `qrcode`, `django-axes`.
+- Django + SQLite, htmx, Pillow (installed from Phase 2), `qrcode`, `django-axes`.
 - Tooling: pytest-django, factory_boy, pytest-cov, ruff.
 - Tailwind via the standalone CLI binary (no Node.js). See [frontend.md](frontend.md).
 
@@ -30,15 +30,24 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 
 ## Layout
 - `config/settings/{base,dev,prod}.py`, `config/urls.py` (includes each app's namespaced URLs).
-- Apps: `accounts/`, `catalog/` (more are added by later phases). Tests live in `<app>/tests/`.
+- Apps: `accounts/`, `catalog/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
+- `demo/` has no models: it holds `seed_demo` (`demo/seed.py` has the data and rules, the command only prints).
 - Project templates in `templates/` (`base.html`, `includes/`, `icons/`, one folder per app). Tailwind source in `tailwind/source.css`.
 
 ## URLs so far
 | Name | Path |
 |---|---|
-| `catalog:index` | `/` (placeholder home until Phase 2) |
+| `catalog:index` | `/`: the catalog (`ProductListView`), 12 per page, `?page=N` |
 | `accounts:signup` / `accounts:login` / `accounts:logout` (POST only) | `/accounts/signup/`, `/accounts/login/`, `/accounts/logout/` |
 | admin | `/admin/` |
+
+## Catalog
+- `catalog.Category` (unique name; Textbook, Merchandise and Lab Kit added by data migration `0002`). Edited only in `/admin/`.
+- `catalog.Product`: title, category (PROTECT), description, price, optional image, alt text (blank defaults to the title in `save()`), stock, `low_stock_threshold` (default 5), `is_active`. A `CheckConstraint` (`catalog_product_stock_gte_0`) keeps `stock >= 0`.
+- **`Product.objects.active()`** is the shared active-products helper. Every customer-facing product query starts from it.
+- **`catalog.models.stock_status(stock, threshold)`** returns a `StockStatus` choice: `.value` is the stable id (`in_stock`, `low_stock`, `out_of_stock`) and `.label` is the customer wording. `product.stock_status` uses the product's own threshold.
+- Images (`catalog/images.py`): `validate_product_image` (Pillow-detected JPEG/PNG/WebP, max 5 MB) and `product_image_path` (random `products/<uuid>.<ext>`, extension from the detected format). Resizing comes in Phase 13.
+- Admin: Category and Product are registered; product stock is read-only there.
 
 ## Accounts
 - `accounts.User` (`AbstractUser` with `username = None`). `USERNAME_FIELD = "email"`, first and last name required.
@@ -54,6 +63,8 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
   - never turn on `ATOMIC_REQUESTS`
 - Dev: console email via `MAILERS` (Django 6.1 deprecates `EMAIL_BACKEND`), insecure dev key, localhost hosts.
 - Prod: secrets from env vars (`DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, …, listed in the `prod.py` docstring), SSL redirect, secure cookies, HSTS, SMTP via `MAILERS`. `manage.py check --deploy` passes, and a test enforces it.
+- Media: `MEDIA_ROOT = media/` (gitignored, uploads only, never mixed with committed `static/`). Dev serves it through `static()` in `config/urls.py`.
+- `ALLOW_DEMO_SEED`: `False` in base, `True` only in dev. `seed_demo` refuses without it (independent of `DEBUG`).
 - Demo runs on localhost only.
 
 ## Research findings (Phase 1, checked in installed source, Nov 2026)

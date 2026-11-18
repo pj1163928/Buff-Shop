@@ -27,6 +27,104 @@ Each entry has this shape:
     - **Outcome:** what was built and what was kept
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
+## 2026-11-18 — Buff Shop: Phase 2/18, Read-only catalog and first `seed_demo`
+
+### Prompts
+
+1. The `/implement` skill, given `buff-shop.md phase 2`.
+2. Approved the brief with four adjustments: (1) safe `seed_demo` credentials:
+   print passwords only in development, clearly documented dev-only
+   credentials, never overwrite an existing superuser's password, refuse
+   unless the seed environment is explicitly allowed, independent of
+   `DEBUG`; (2) stronger idempotency: never reactivate an inactive product,
+   never overwrite stock, never overwrite passwords except designated demo
+   accounts; (3) image handling: validate formats, a maximum upload size, a
+   safe generated filename, uploads kept apart from static assets (resizing
+   can wait); (4) pagination edge-case tests: exactly 12 is one page, 13 is
+   two, inactive products don't affect pagination, out-of-stock products
+   stay visible, sorting is consistent between pages. Also: "for TDD phases
+   this point going forward only stop at red and continue past to green when
+   red has been checked over."
+3. Approved the first RED test, recommending that `stock_status()` return a
+   structured result with a stable identifier (`out_of_stock`, `low_stock`,
+   `in_stock`) alongside the label.
+4. Approved the second RED test, asking for a safeguard that the catalog
+   view actually uses `Product.objects.active()` and doesn't filter on its
+   own.
+
+### Summary
+
+- **Outcome:** the catalog at `/` lists active products sorted by name, 12
+  per page, with image or placeholder, category, price and a stock badge (an
+  icon plus the words). Categories are seeded by a data migration and
+  editable in `/admin/`. `seed_demo` creates 5 demo accounts and 16 products
+  (15 active, some low or out of stock, plus 1 inactive). 105 tests pass,
+  with 100% line coverage. `ruff check` and `ruff format --check` are clean.
+- **Changes:**
+  - `catalog/models.py`: Category, Product (with a `stock >= 0` CHECK
+    constraint), `StockStatus` and `stock_status()`, and the
+    `Product.objects.active()` helper. The alt text defaults to the title.
+  - `catalog/images.py`: new. A Pillow-based format check (JPEG/PNG/WebP), a
+    5 MB limit, and random storage names whose extension comes from the
+    detected format.
+  - `catalog/migrations/0001_initial.py`, `0002_seed_categories.py`: new.
+  - `catalog/views.py`, `catalog/urls.py`: `ProductListView` replaces the
+    placeholder home page.
+  - `catalog/admin.py`: new. Category and Product are registered, with
+    product stock read-only.
+  - `templates/catalog/index.html`, `templates/catalog/_stock_status.html`:
+    the catalog grid, pagination and the stock badge.
+  - `templates/icons/{triangle-exclamation,circle-xmark,chevron-left,chevron-right}.svg`
+    and `static/img/product-placeholder.svg`: new.
+  - `demo/`: a new app. `seed.py` holds the data and the rules for
+    protecting existing data, and `management/commands/seed_demo.py` is the
+    command.
+  - `config/settings/base.py`, `dev.py`: `MEDIA_ROOT`/`MEDIA_URL`, the
+    `demo` app, and `ALLOW_DEMO_SEED` (True only in dev).
+    `config/urls.py` serves media in dev.
+  - `pyproject.toml`, `uv.lock`: Pillow, needed by `ImageField`.
+  - `tailwind/source.css`, `static/css/site.css`: `warning` colour tokens
+    and a rebuild (the stylesheet was an unminified watcher build before the
+    phase).
+  - Tests: `catalog/tests/{factories,test_stock_status,test_active_products,test_models,test_images,test_catalog_view,test_admin}.py`
+    and `demo/tests/test_seed_demo.py`.
+  - Docs: `docs/{architecture,business-rules,frontend,testing,workflow}.md`
+    and `CLAUDE.md`, updated with the new helpers, URLs, settings and demo
+    logins. The Phase 2 acceptance criteria are ticked in the plan.
+- **TDD:**
+  - `test_stock_status_boundaries`: the 0, 1, 5 and 6 boundaries with
+    threshold 5, and 0 and 1 with threshold 0.
+  - `test_active_products_excludes_inactive`.
+
+  Both were RED on an assertion against stubs, then GREEN.
+- **Decisions:**
+  - `seed_demo` lives in a new model-less `demo` app.
+  - The production guard is an explicit `ALLOW_DEMO_SEED` setting, not
+    `DEBUG`, and a subprocess test runs the command under the real prod
+    settings.
+  - Demo products are created only if missing.
+  - The superuser's password is printed on later runs only while it still
+    matches the demo one. This is checked read-only with `check_password`.
+  - The placeholder alt text is "No photo available".
+  - A page number past the end gives a 404.
+  - Product stock is read-only in Django admin.
+- **Deviations:**
+  - The user's four adjustments (see prompt 2) were all built. Image format
+    and size validation were pulled forward from Phase 13 and tested
+    normally, not with TDD.
+  - A separate test pins the stable `StockStatus` identifiers, as the user
+    recommended. The approved TDD test was left unchanged.
+  - A behavioural test swaps in a different `active()` and checks that the
+    catalog shows exactly what it returns. If the view filtered products on
+    its own, it would fail.
+  - The user's new rule, stop only at RED in TDD, was saved as a standing
+    preference.
+- **Sideways:**
+  - The first version of the "status is text plus icon" test split the HTML
+    on `<p` and matched the icon's `<path`. It was replaced with a regex.
+  - Headless Firefox couldn't take screenshots while the user's own Firefox
+    was open. A separate throwaway profile was used instead.
+
 ## 2026-11-18 — README with overview, screenshots, setup and testing steps
 
 ### Prompts

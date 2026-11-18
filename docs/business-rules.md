@@ -44,7 +44,8 @@ Read when touching stock, checkout, order status, cancellation, pickup codes, ac
 - The disable screen offers "cancel open orders too?".
 
 ## Stock status and notifications
-- Status: 0 → Out of Stock; ≤ threshold → "Low Stock — act soon"; above → In Stock.
+- Status: 0 → Out of Stock; ≤ threshold → "Low Stock — act soon"; above → In Stock. Always use `catalog.models.stock_status()` / `product.stock_status`; never re-implement the comparison.
+- Customer-facing product queries start from `Product.objects.active()`.
 - Staff pop-up (htmx poll every 30 s) counts orders in Placed and active products at or below their threshold.
   - After dismissal it returns immediately on new activity, otherwise after 15 minutes.
   - Per-staff "snoozed until" (1 hour or end of day) is stored in the DB.

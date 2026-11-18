@@ -24,8 +24,16 @@ Other skills:
 - The AI assistant is a deferred stretch goal. Ask the user which model to use before starting it. Its constraints are in the [PRD › Out of Scope](../prd/buff-shop.md#out-of-scope).
 
 ## Demo data
-- `manage.py seed_demo` (planned) is idempotent and refuses to run under production settings.
-- It creates a superuser, a staff account, customers, about 15 products (some low or out of stock) and orders in every status.
+- `uv run python manage.py seed_demo` (code in `demo/seed.py`). Refuses unless `ALLOW_DEMO_SEED` is True (dev settings only).
+- So far it creates 5 accounts and 16 products (15 active, some low or out of stock, plus 1 inactive). Later phases add orders in every status.
+- **Development-only logins** (public, printed by the command):
+
+  | Role | Email | Password |
+  |---|---|---|
+  | superuser | `owner@buffshop.test` | `Owner-Demo-Pass-26` |
+  | staff | `staff@buffshop.test` | `Staff-Demo-Pass-26` |
+  | customers | `alex@`, `sam@`, `jordan@buffshop.test` | `Customer-Demo-Pass-26` |
+- Re-running is safe. It never duplicates, never overwrites product stock, never reactivates a product, and never changes an existing superuser (its password is shown only if it is still the demo one). Only the staff and customer demo accounts are reset to the values above.
 
 ## Git
 - Git repository on branch `main` (initialised in Phase 1).

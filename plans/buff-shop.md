@@ -116,12 +116,12 @@ Customers see the catalog at `/`. It lists active products sorted by name, 12 pe
 
 ### Acceptance criteria
 
-- [ ] Stock status reads "Out of Stock" at 0, "Low Stock — act soon" at or below the product's own threshold, and "In Stock" above it. It is shown in text, not only colour.
-- [ ] Out-of-stock products appear. Inactive products never appear, and the catalog query goes through the active-products helper.
-- [ ] Products without an image show a placeholder with sensible alt text.
-- [ ] Pagination is 12 per page, sorted by name.
-- [ ] A database constraint keeps `stock >= 0`.
-- [ ] `seed_demo` can be run twice without duplicating data, refuses to run under production settings, and prints the demo logins.
+- [x] Stock status reads "Out of Stock" at 0, "Low Stock — act soon" at or below the product's own threshold, and "In Stock" above it. It is shown in text, not only colour.
+- [x] Out-of-stock products appear. Inactive products never appear, and the catalog query goes through the active-products helper.
+- [x] Products without an image show a placeholder with sensible alt text.
+- [x] Pagination is 12 per page, sorted by name.
+- [x] A database constraint keeps `stock >= 0`.
+- [x] `seed_demo` can be run twice without duplicating data, refuses to run under production settings, and prints the demo logins.
 
 ### TDD
 
