@@ -1,0 +1,45 @@
+[project]
+name = "buff-shop"
+version = "0.1.0"
+description = "Buff Shop: campus shop ordering web app (CIDM 4360 final project)"
+requires-python = ">=3.12"
+dependencies = [
+    "django==6.1.3",
+]
+
+[dependency-groups]
+dev = [
+    "django-tailwind-cli==4.8.2",
+    "factory-boy>=3.3.3",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "pytest-django>=4.14.0",
+    "ruff>=0.17.5",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py"]
+addopts = "--cov --cov-report=term-missing:skip-covered"
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    ".venv/*",
+    "*/migrations/*",
+    "*/tests/*",
+    "manage.py",
+    "config/asgi.py",
+    "config/wsgi.py",
+    # Loaded only in a subprocess by test_production_settings_pass_check_deploy.
+    "config/settings/prod.py",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "SIM"]

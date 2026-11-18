@@ -1,0 +1,12 @@
+{% comment %}Errors that belong to the whole form (e.g. a failed login), announced on load.{% endcomment %}
+{% if form.non_field_errors %}
+  <div role="alert" class="mb-6 rounded border-l-4 border-danger bg-danger-50 px-4 py-3 text-danger">
+    {% for error in form.non_field_errors %}
+      <p class="flex items-start gap-2 font-bold">{% include "icons/circle-exclamation.svg" with class="mt-1 h-4 w-4" %}<span>{{ error }}</span></p>
+    {% endfor %}
+  </div>
+{% elif form.errors %}
+  <div role="alert" class="mb-6 rounded border-l-4 border-danger bg-danger-50 px-4 py-3 text-danger">
+    <p class="flex items-start gap-2 font-bold">{% include "icons/circle-exclamation.svg" with class="mt-1 h-4 w-4" %}<span>Please fix the {{ form.errors|length }} problem{{ form.errors|length|pluralize }} below.</span></p>
+  </div>
+{% endif %}

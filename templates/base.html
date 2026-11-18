@@ -1,0 +1,85 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Buff Shop{% endblock %} · Buff Shop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700&family=Oswald:wght@500;600&display=swap">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body class="flex min-h-screen flex-col">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:px-4 focus:py-3 focus:font-bold focus:text-maroon-900 focus:shadow-lg">Skip to main content</a>
+
+  <header class="on-maroon">
+    <div class="bg-maroon-950 text-white">
+      <p class="mx-auto max-w-6xl px-4 py-1.5 text-sm">Order online · Pay in person at pickup</p>
+    </div>
+    <div class="bg-maroon-900 text-white">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+        <a href="{% url 'catalog:index' %}" class="inline-flex min-h-11 items-center gap-2 font-display text-2xl font-semibold uppercase tracking-wider text-white no-underline hover:text-white">
+          {% include "icons/bag-shopping.svg" with class="h-6 w-6" %}
+          Buff Shop
+        </a>
+        <nav aria-label="Account">
+          <ul class="flex flex-wrap items-center gap-1">
+            {% if user.is_authenticated %}
+              <li class="inline-flex min-h-11 items-center gap-2 px-3 text-sm">
+                {% include "icons/user.svg" %}
+                <span>Hi, {{ user.first_name }}</span>
+              </li>
+              <li>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-link cursor-pointer">
+                    {% include "icons/right-from-bracket.svg" %}
+                    Log out
+                  </button>
+                </form>
+              </li>
+            {% else %}
+              <li>
+                <a href="{% url 'accounts:login' %}" class="nav-link"{% if request.resolver_match.view_name == 'accounts:login' %} aria-current="page"{% endif %}>
+                  {% include "icons/right-to-bracket.svg" %}
+                  Log in
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:signup' %}" class="nav-link border-2 border-white"{% if request.resolver_match.view_name == 'accounts:signup' %} aria-current="page"{% endif %}>
+                  {% include "icons/user-plus.svg" %}
+                  Sign up
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 focus:outline-none">
+    {% if messages %}
+      <div role="status" class="mb-6 space-y-2">
+        {% for message in messages %}
+          <p class="flex items-start gap-2 rounded border-l-4 px-4 py-3 {% if message.level_tag == 'success' %}border-success bg-success-50 text-success{% elif message.level_tag == 'error' %}border-danger bg-danger-50 text-danger{% else %}border-maroon-900 bg-maroon-50 text-maroon-900{% endif %}">
+            {% if message.level_tag == 'success' %}{% include "icons/circle-check.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Success:</span>
+            {% elif message.level_tag == 'error' %}{% include "icons/circle-exclamation.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Error:</span>
+            {% else %}{% include "icons/circle-info.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Note:</span>{% endif %}
+            <span>{{ message }}</span>
+          </p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="on-maroon bg-charcoal text-white">
+    <div class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-6 text-sm sm:flex-row sm:justify-between">
+      <p><span class="font-display uppercase tracking-wider">Buff Shop</span> · Textbooks, merchandise and lab kits</p>
+      <p>Icons: <a href="https://fontawesome.com/license/free" class="text-white hover:text-white">Font Awesome Free</a> (CC BY 4.0)</p>
+    </div>
+  </footer>
+</body>
+</html>

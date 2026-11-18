@@ -1,0 +1,102 @@
+/*
+ * Buff Shop stylesheet source. Built by the Tailwind standalone CLI:
+ *   uv run python manage.py tailwind build   ->  static/css/site.css (committed)
+ *
+ * Theme: West Texas A&M University's web colours and fonts, read from
+ * wtamu.edu's stylesheets (Nov 2026): maroon #450012 as the primary colour,
+ * darker/lighter maroons, charcoal #332c2c, light greys; Oswald for headings
+ * and Nunito Sans for body text.
+ */
+@import "tailwindcss" source(none);
+@source "../templates";
+@source "../accounts";
+@source "../catalog";
+
+@theme {
+  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Oswald", "Arial Narrow", ui-sans-serif, sans-serif;
+
+  --color-maroon-950: #3f0012; /* utility bar */
+  --color-maroon-900: #450012; /* WTAMU primary: header, primary buttons */
+  --color-maroon-800: #590012; /* hover on maroon */
+  --color-maroon-700: #8c002c; /* links hover */
+  --color-maroon-600: #a50033; /* links, focus ring on light backgrounds */
+  --color-maroon-50: #f9eef1; /* tinted panels */
+  --color-charcoal: #332c2c; /* body text, footer */
+  --color-muted: #5c5353; /* secondary text (7:1 on white) */
+  --color-mist: #f2f2f2; /* page background bands */
+  --color-line: #d9d6d6; /* borders */
+  --color-success: #1d6b3a;
+  --color-success-50: #ecf6ef;
+  --color-danger: #a4161a;
+  --color-danger-50: #fbeceb;
+}
+
+@layer base {
+  html {
+    @apply bg-white font-sans text-charcoal antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-semibold tracking-wide text-maroon-900;
+  }
+
+  a {
+    @apply text-maroon-600 underline underline-offset-2 hover:text-maroon-700;
+  }
+
+  /* Visible focus everywhere (WCAG 2.4.7 / 2.4.11). On maroon areas the
+     ring turns white; see .on-maroon below. */
+  :focus-visible {
+    outline: 3px solid var(--color-maroon-600);
+    outline-offset: 2px;
+  }
+  .on-maroon :focus-visible {
+    outline-color: #fff;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    @apply block w-full min-h-11 rounded border border-muted bg-white px-3 py-2 text-base text-charcoal;
+  }
+  input[aria-invalid="true"] {
+    @apply border-2 border-danger;
+  }
+  input[type="checkbox"] {
+    @apply h-5 w-5 accent-maroon-900;
+  }
+}
+
+/* Shared classes. Tailwind v4 needs @utility (not @layer components) for a
+   class that other classes @apply. */
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded px-5 py-2 font-display text-base font-medium uppercase tracking-wider no-underline transition-colors;
+}
+@utility btn-primary {
+  @apply btn bg-maroon-900 text-white hover:bg-maroon-800 hover:text-white;
+}
+@utility btn-outline {
+  @apply btn border-2 border-maroon-900 bg-white text-maroon-900 hover:bg-maroon-50 hover:text-maroon-900;
+}
+@utility nav-link {
+  @apply inline-flex min-h-11 items-center gap-2 rounded px-3 py-2 font-display text-sm font-medium uppercase tracking-wider text-white no-underline hover:bg-maroon-800 hover:text-white;
+}
+@utility card {
+  @apply rounded border border-line bg-white p-6 shadow-sm;
+}
+@utility help-text {
+  @apply mt-1 text-sm text-muted;
+  & ul {
+    @apply list-disc space-y-0.5 pl-5;
+  }
+}
+@utility field-error {
+  @apply mt-1 flex items-start gap-1.5 text-sm font-bold text-danger;
+}

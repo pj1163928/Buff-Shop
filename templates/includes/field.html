@@ -1,0 +1,29 @@
+{% comment %}
+One form field: visible label, input, help text and errors. Django links the
+input to "<id>_helptext" and "<id>_error" through aria-describedby and sets
+aria-invalid when there are errors.
+Usage: {% include "includes/field.html" with field=form.email %}
+{% endcomment %}
+<div class="mb-5">
+  {% if field.widget_type == "checkbox" %}
+    <div class="flex items-center gap-3">
+      {{ field }}
+      <label for="{{ field.id_for_label }}" class="font-bold">{{ field.label }}</label>
+    </div>
+  {% else %}
+    <label for="{{ field.id_for_label }}" class="mb-1 block font-bold">
+      {{ field.label }}{% if field.field.required %} <span class="font-normal text-muted">(required)</span>{% endif %}
+    </label>
+    {{ field }}
+  {% endif %}
+  {% if field.errors %}
+    <div id="{{ field.auto_id }}_error">
+      {% for error in field.errors %}
+        <p class="field-error">{% include "icons/circle-exclamation.svg" with class="mt-0.5 h-4 w-4" %}<span>{{ error }}</span></p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if field.help_text %}
+    <div id="{{ field.auto_id }}_helptext" class="help-text">{{ field.help_text|safe }}</div>
+  {% endif %}
+</div>

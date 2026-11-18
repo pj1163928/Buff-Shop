@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg">
+  <h1 class="mb-2 text-3xl uppercase">Create your account</h1>
+  <p class="mb-6 text-muted">Sign up to order textbooks, merchandise and lab kits, then pay when you pick them up.</p>
+  <div class="card">
+    {% include "includes/form_errors.html" %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        {% include "includes/field.html" with field=form.first_name %}
+        {% include "includes/field.html" with field=form.last_name %}
+      </div>
+      {% include "includes/field.html" with field=form.email %}
+      {% include "includes/field.html" with field=form.password1 %}
+      {% include "includes/field.html" with field=form.password2 %}
+      <button type="submit" class="btn-primary w-full">
+        {% include "icons/user-plus.svg" %}
+        Sign up
+      </button>
+    </form>
+  </div>
+  <p class="mt-6 text-center">Already have an account? <a href="{% url 'accounts:login' %}">Log in</a></p>
+</div>
+{% endblock %}

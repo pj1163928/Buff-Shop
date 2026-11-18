@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+db.sqlite3-wal
+db.sqlite3-shm
+staticfiles/
+media/
+
+# Tailwind standalone binary (downloaded by django-tailwind-cli)
+.django_tailwind_cli/
+
+# Local environment
+.env
+.claude/settings.local.json
