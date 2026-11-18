@@ -38,6 +38,7 @@ Read when writing templates, htmx interactions, CSS, images or the QR scanner.
 
 ## Images
 - Optional, with a placeholder when missing: `static/img/product-placeholder.svg`, `alt="No photo available"`. Product images use `product.alt_text`.
+- Demo photos live in `demo/images/` (800 × 600 JPEGs, openly licensed, credited in `demo/images/CREDITS.md`). `seed_demo` copies them into `media/` under random names.
 - Pillow validates real JPEG, PNG or WebP files and rejects anything over 5 MB.
 - Store one copy resized to at most about 800 px wide, compressed, under a random filename. Discard the original.
 - Alt text is required and defaults to the product title.

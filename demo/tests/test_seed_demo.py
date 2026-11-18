@@ -5,11 +5,14 @@ import sys
 
 import pytest
 from django.conf import settings
+from django.core.files import File
 from django.core.management import CommandError, call_command
+from PIL import Image
 
 from accounts.models import User
+from catalog.images import validate_product_image
 from catalog.models import Product, StockStatus
-from demo.seed import DEMO_ACCOUNTS
+from demo.seed import DEMO_ACCOUNTS, DEMO_IMAGE_DIR, DEMO_PRODUCTS
 
 pytestmark = pytest.mark.django_db
 
@@ -160,3 +163,74 @@ def test_refuses_under_production_settings(tmp_path):
     assert result.returncode != 0
     assert "development only" in result.stderr
     assert not (tmp_path / "prod.sqlite3").exists()
+
+
+# --- Product photos -------------------------------------------------------------
+
+
+def media_files(settings) -> list:
+    root = settings.MEDIA_ROOT
+    return sorted(p for p in root.rglob("*") if p.is_file()) if root.exists() else []
+
+
+def test_every_demo_product_gets_its_photo_with_alt_text(settings):
+    output = seed()
+    for item in DEMO_PRODUCTS:
+        product = Product.objects.get(title=item.title)
+        assert product.image, item.title
+        assert (settings.MEDIA_ROOT / product.image.name).is_file()
+        assert product.image.name.startswith("products/")
+        assert product.image.name != f"products/{item.image}"  # stored under a random name
+        assert product.alt_text == item.alt_text != product.title
+    assert f"Product photos: {len(DEMO_PRODUCTS)} attached" in output
+
+
+def test_rerun_attaches_no_new_photos(settings):
+    seed()
+    names = {p.title: p.image.name for p in Product.objects.all()}
+    files = media_files(settings)
+
+    output = seed()
+
+    assert {p.title: p.image.name for p in Product.objects.all()} == names
+    assert media_files(settings) == files
+    assert "Product photos: 0 attached" in output
+
+
+def test_an_existing_image_is_never_replaced():
+    seed()
+    hoodie = Product.objects.get(title="Buff Hoodie – Small")
+    staff_photo = DEMO_IMAGE_DIR.joinpath("lanyard.jpg").read_bytes()  # any real image
+    hoodie.image = File(io.BytesIO(staff_photo), "staff-upload.jpg")
+    hoodie.alt_text = "Staff photo of the hoodie"
+    hoodie.save()
+    uploaded_name = hoodie.image.name
+
+    output = seed()
+
+    hoodie.refresh_from_db()
+    assert hoodie.image.name == uploaded_name
+    assert hoodie.alt_text == "Staff photo of the hoodie"
+    assert "Product photos: 0 attached" in output
+
+
+def test_a_photo_whose_file_went_missing_is_attached_again(settings):
+    seed()
+    bottle = Product.objects.get(title="Maroon Water Bottle")
+    (settings.MEDIA_ROOT / bottle.image.name).unlink()
+
+    seed()
+
+    bottle.refresh_from_db()
+    assert (settings.MEDIA_ROOT / bottle.image.name).is_file()
+
+
+def test_demo_photos_are_valid_small_and_credited():
+    credits = DEMO_IMAGE_DIR.joinpath("CREDITS.md").read_text()
+    for name in {item.image for item in DEMO_PRODUCTS}:
+        path = DEMO_IMAGE_DIR / name
+        with Image.open(path) as photo:
+            assert photo.format == "JPEG"
+            assert photo.width <= 800
+        validate_product_image(File(path.open("rb"), name))  # the upload rules accept it
+        assert f"`{name}`" in credits, f"{name} has no credit in CREDITS.md"

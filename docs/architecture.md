@@ -32,7 +32,7 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 ## Layout
 - `config/settings/{base,dev,prod}.py`, `config/urls.py` (includes each app's namespaced URLs).
 - Apps: `accounts/`, `catalog/`, `dashboard/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
-- `demo/` has no models: it holds `seed_demo` (`demo/seed.py` has the data and rules, the command only prints).
+- `demo/` has no models: it holds `seed_demo` (`demo/seed.py` has the data and rules, the command only prints) and the demo product photos in `demo/images/`.
 - Project templates in `templates/` (`base.html`, `includes/`, `icons/`, one folder per app). Tailwind source in `tailwind/source.css`.
 
 ## URLs so far

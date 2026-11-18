@@ -27,6 +27,77 @@ Each entry has this shape:
     - **Outcome:** what was built and what was kept
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
+## 2026-11-18 — Polish: demo product photos, README sign-ins
+
+### Prompts
+
+1. "I am essentiallypolishing up some of what is already here can we get some
+   images for my products these can really be anything as long as they are
+   decent images that are CC0 or CC By or some free use derivative to act as
+   a placeholder. Next can we update the README to include the new demo
+   sign-ins append this session to PROMPTS.md as well"
+
+### Summary
+
+- **Outcome:** all 16 demo products have an openly licensed placeholder
+  photo (13 distinct images; the four hoodie sizes share one), attached by
+  `seed_demo`. The README lists the demo sign-ins and shows the current
+  state of the app. 160 tests pass with 100% line coverage; `ruff check`
+  and `ruff format --check` are clean. Not committed.
+- **Changes:**
+  - `demo/images/`: new. 13 JPEGs at 800 × 600 (about 880 KB in total) and
+    `CREDITS.md`, with title, author, license and source link for each, and
+    the changes made (cropped and resized). Six are CC0 and seven are
+    CC BY 2.0.
+  - `demo/seed.py`: every `DemoProduct` now requires an `image` and
+    `alt_text` describing the photo. A product with no image, or whose file
+    is missing from `media/`, gets its photo under a random name; an
+    existing image is never replaced. The report counts photos attached.
+  - `demo/management/commands/seed_demo.py`: prints "Product photos: N
+    attached".
+  - `conftest.py`: new. Every test stores media in a temporary folder.
+  - `demo/tests/test_seed_demo.py`: photos are attached with alt text and
+    random names, a rerun attaches nothing new, an existing image is kept, a
+    missing file is replaced, and every photo is a valid JPEG at most 800 px
+    wide that is credited in `CREDITS.md`.
+  - `README.md`: a demo sign-ins table (role, email, password, what each
+    can do) with a dev-only warning, the status updated to Phases 1–3,
+    `seed_demo` as a setup step, browser checks for the catalog,
+    dashboard and access refusals, and an image credits link.
+  - `docs/images/home.jpg` replaces the outdated Phase 1 `home.png`, and
+    `docs/images/dashboard-products.png` is new.
+  - Docs: `docs/{architecture,frontend,testing,workflow}.md` describe the
+    demo photos, their rules and the test media folder.
+- **TDD:** none. This was seed data, images and documentation. The seed
+  behaviour got ordinary tests.
+- **Decisions:**
+  - Photos are stored in the repo and attached by `seed_demo`, not uploaded
+    by hand, so a fresh clone gets them. They are resized before
+    committing, following the PRD's 800 px rule.
+  - Photos were found through Openverse with the license filter set to
+    CC0, public-domain mark and CC BY, and inspected on contact sheets.
+    Rejected: photos with faces, other brands' logos (most hoodie results),
+    and one with a knife beside the water bottle.
+  - The hoodie photo is a CC0 shot of a red hoodie seen from behind,
+    cropped. No product-style hoodie photo without branding was found on
+    Openverse or Wikimedia Commons.
+  - The safety goggles show the maker's small "uvex" mark, kept as normal
+    for a product photo.
+  - The README's home screenshot was replaced because it still showed the
+    Phase 1 page; it is a JPEG because a PNG of the photos was 600 KB.
+- **Deviations:** none. No follow-up questions were asked.
+- **Sideways:**
+  - The first `CREDITS.md` was written by a shell heredoc that ran the
+    Markdown backticks as commands, blanking the file names. Caught by
+    reading the output and regenerated with a quoted heredoc.
+  - The first goggles crop cut the glasses out of the frame. Caught on the
+    contact sheet and recropped.
+  - One new test had an assertion that could never fail. It was rewritten
+    to compare the stored image name before and after the rerun.
+  - `static/css/site.css` showed as modified from an earlier
+    `tailwind runserver` (an unminified watcher build). `tailwind build`
+    restored it to the committed version.
+
 ## 2026-11-18 — Buff Shop: Phase 3/18, Dashboard shell and access control
 
 ### Prompts

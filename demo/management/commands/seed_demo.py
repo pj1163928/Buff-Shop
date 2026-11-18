@@ -6,7 +6,8 @@ from demo.seed import seed_demo
 
 class Command(BaseCommand):
     help = (
-        "Create demo accounts and products for the localhost demo. Safe to run twice. "
+        "Create demo accounts, products and product photos for the localhost demo. "
+        "Safe to run twice. "
         "Refuses to run unless the settings allow it (development only)."
     )
 
@@ -23,6 +24,10 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Products: {report.products_created} created, "
             f"{report.products_existing} already there (left unchanged)."
+        )
+        self.stdout.write(
+            f"Product photos: {report.images_attached} attached "
+            "(an existing image is never replaced; credits in demo/images/CREDITS.md)."
         )
         self.stdout.write("")
         self.stdout.write("Demo logins (DEVELOPMENT ONLY, these passwords are public):")

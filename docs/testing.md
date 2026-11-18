@@ -18,6 +18,7 @@ Read when writing or running tests, or finishing a plan phase. Full list: [PRD â
 - `config/tests/test_admin_site.py`: `/admin/` refuses anonymous, customers and plain staff (pages, data changes and the admin login form) and works for the superuser.
 - `demo/tests/test_seed_demo.py` covers idempotency, protected data and the refusal under production settings (in a subprocess).
 - `config/tests/test_settings.py` checks the SQLite options and runs `check --deploy` under prod settings in a subprocess.
+- The root `conftest.py` points `MEDIA_ROOT` at a temporary folder for every test, so tests that seed or upload never write to `media/`.
 - The test runner swaps in an in-memory mailer, so read `config.settings.dev` directly to check the dev mail config. Use `mailoutbox`/`mail.outbox` for sent mail.
 
 ## Build with TDD (`/tdd`)

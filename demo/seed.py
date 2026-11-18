@@ -1,4 +1,4 @@
-"""Demo data for the localhost demo: accounts and products.
+"""Demo data for the localhost demo: accounts, products and product photos.
 
 DEVELOPMENT-ONLY CREDENTIALS. The passwords below are public (they are in the
 repository and printed by ``seed_demo``). They exist only so the class demo
@@ -13,15 +13,22 @@ Safe to run repeatedly. What a second run does:
   their names, role and password are reset to the values below, so the printed
   logins always work. A demo email that now belongs to a superuser is skipped.
 * **Products:** created if missing (matched by title). An existing product is
-  left exactly as it is: its stock is never overwritten and an inactive
-  product is never reactivated.
+  left as it is: its stock is never overwritten and an inactive product is
+  never reactivated. The one exception is the photo below.
+* **Product photos:** a demo product with no image (or whose image file has
+  gone missing from ``media/``) gets its placeholder photo from
+  ``demo/images/``, with alt text describing it. An image that is already
+  there, such as one staff uploaded, is never replaced. The photos are
+  openly licensed; see ``demo/images/CREDITS.md``.
 * Nothing else in the database is touched.
 """
 
 from dataclasses import dataclass, field
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib.auth.hashers import check_password
+from django.core.files import File
 from django.db import transaction
 
 from accounts.models import User
@@ -55,6 +62,15 @@ class DemoProduct:
     description: str
     threshold: int = 5
     is_active: bool = True
+    # Required for every demo product (keyword-only): a file in demo/images/
+    # credited in CREDITS.md, and alt text describing that photo.
+    image: str = field(kw_only=True)
+    alt_text: str = field(kw_only=True)
+
+
+# Openly licensed placeholder photos, 800 x 600 JPEGs. Credits: images/CREDITS.md.
+DEMO_IMAGE_DIR = Path(__file__).resolve().parent / "images"
+HOODIE_PHOTO = {"image": "hoodie.jpg", "alt_text": "A person seen from behind in a red hoodie"}
 
 
 # 15 active products (some low, some out of stock) and 1 inactive one.
@@ -66,6 +82,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "89.99",
         12,
         "Required text for CIDM 3330. Covers spreadsheets, data cleaning and dashboards.",
+        image="business-analytics.jpg",
+        alt_text="A laptop showing bar and pie charts",
     ),
     DemoProduct(
         "Database Systems: Design and Use",
@@ -73,6 +91,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "112.50",
         4,
         "Relational design, SQL and normalisation, with worked examples.",
+        image="database-systems.jpg",
+        alt_text="Rows of server racks in a data centre",
     ),
     DemoProduct(
         "Principles of Microeconomics",
@@ -80,6 +100,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "74.00",
         0,
         "Supply, demand and market structures for ECON 2302.",
+        image="microeconomics.jpg",
+        alt_text="Three stacks of coins, each taller than the last",
     ),
     DemoProduct(
         "Technical Writing Handbook",
@@ -87,6 +109,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "38.25",
         25,
         "A practical guide to reports, proposals and documentation.",
+        image="technical-writing.jpg",
+        alt_text="A silver pen resting on a blank writing pad",
     ),
     DemoProduct(
         "Calculus: Early Transcendentals",
@@ -95,6 +119,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         6,
         "Limits, derivatives and integrals. Warns early: threshold 8.",
         threshold=8,
+        image="calculus.jpg",
+        alt_text="An open maths textbook and a pen on graph paper",
     ),
     # Merchandise (sizes are separate products)
     DemoProduct(
@@ -103,6 +129,7 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "44.99",
         18,
         "Maroon fleece hoodie with the Buffs wordmark.",
+        **HOODIE_PHOTO,
     ),
     DemoProduct(
         "Buff Hoodie – Medium",
@@ -110,6 +137,7 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "44.99",
         3,
         "Maroon fleece hoodie with the Buffs wordmark.",
+        **HOODIE_PHOTO,
     ),
     DemoProduct(
         "Buff Hoodie – Large",
@@ -117,6 +145,7 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "44.99",
         0,
         "Maroon fleece hoodie with the Buffs wordmark.",
+        **HOODIE_PHOTO,
     ),
     DemoProduct(
         "Buffs Logo T-Shirt – Medium",
@@ -124,9 +153,17 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "19.99",
         40,
         "Soft cotton tee in heather grey.",
+        image="t-shirt.jpg",
+        alt_text="Folded t-shirts in grey, navy, red, green and white",
     ),
     DemoProduct(
-        "Maroon Water Bottle", "Merchandise", "14.50", 22, "Insulated 20 oz stainless steel bottle."
+        "Maroon Water Bottle",
+        "Merchandise",
+        "14.50",
+        22,
+        "Insulated 20 oz stainless steel bottle.",
+        image="water-bottle.jpg",
+        alt_text="Four reusable water bottles in steel and blue",
     ),
     DemoProduct(
         "Buffs Lanyard",
@@ -135,6 +172,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         2,
         "Maroon lanyard with a safety breakaway. Slow seller: threshold 1.",
         threshold=1,
+        image="lanyard.jpg",
+        alt_text="A teal fabric lanyard laid out flat",
     ),
     # Lab kits
     DemoProduct(
@@ -143,6 +182,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "65.00",
         9,
         "Glassware, pipettes and safety gloves for CHEM 1411.",
+        image="chemistry-kit.jpg",
+        alt_text="Glass beakers and a conical flask holding clear liquid",
     ),
     DemoProduct(
         "Biology Dissection Kit",
@@ -150,6 +191,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "72.00",
         5,
         "Stainless steel tools in a zip case for BIOL 1406.",
+        image="dissection-kit.jpg",
+        alt_text="Stainless steel forceps and scissors laid on a cloth",
     ),
     DemoProduct(
         "Physics Circuits Kit",
@@ -157,6 +200,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "58.75",
         0,
         "Breadboard, resistors, LEDs and a multimeter for PHYS 2426.",
+        image="circuits-kit.jpg",
+        alt_text="A breadboard with chips, LEDs and jumper wires",
     ),
     DemoProduct(
         "Lab Safety Goggles",
@@ -164,6 +209,8 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "12.99",
         30,
         "Anti-fog splash goggles that fit over glasses.",
+        image="safety-goggles.jpg",
+        alt_text="Clear safety glasses with blue arms",
     ),
     # Discontinued: never shown to customers.
     DemoProduct(
@@ -173,6 +220,7 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         7,
         "No longer sold.",
         is_active=False,
+        **HOODIE_PHOTO,
     ),
 ]
 
@@ -185,6 +233,7 @@ class SeedReport:
     accounts: list[tuple[DemoAccount, str, bool]] = field(default_factory=list)
     products_created: int = 0
     products_existing: int = 0
+    images_attached: int = 0
 
 
 def _still_has_demo_password(user: User, account: DemoAccount) -> bool:
@@ -229,6 +278,22 @@ def _seed_account(account: DemoAccount) -> tuple[str, bool]:
     return status, True
 
 
+def _attach_demo_photo(product: Product, item: DemoProduct) -> bool:
+    """Give ``product`` its demo photo if it has none, or its file has gone missing.
+
+    An image that is already stored, such as one uploaded by staff, is never
+    replaced. Returns whether a photo was attached. The stored copy gets a
+    random name, like every product image.
+    """
+    if product.image and product.image.storage.exists(product.image.name):
+        return False
+    with open(DEMO_IMAGE_DIR / item.image, "rb") as photo:
+        product.image = File(photo, name=item.image)
+        product.alt_text = item.alt_text
+        product.save(update_fields=["image", "alt_text"])
+    return True
+
+
 def seed_demo() -> SeedReport:
     """Create the demo accounts and products, following the rules in this module's docstring.
 
@@ -243,7 +308,7 @@ def seed_demo() -> SeedReport:
 
         for item in DEMO_PRODUCTS:
             category, _ = Category.objects.get_or_create(name=item.category)
-            _, created = Product.objects.get_or_create(
+            product, created = Product.objects.get_or_create(
                 title=item.title,
                 defaults={
                     "category": category,
@@ -258,4 +323,6 @@ def seed_demo() -> SeedReport:
                 report.products_created += 1
             else:
                 report.products_existing += 1
+            if _attach_demo_photo(product, item):
+                report.images_attached += 1
     return report
