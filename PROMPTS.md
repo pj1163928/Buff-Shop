@@ -27,6 +27,143 @@ Each entry has this shape:
     - **Outcome:** what was built and what was kept
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
+## 2026-11-18 — Buff Shop: Phase 5/18, Cart
+
+### Prompts
+
+1. The `/implement` skill, given `buff-shop.md phase 5`.
+2. Five adjustments to the brief before building (pasted):
+   1. Keep stock changes and cart changes separate: adding, updating and
+      removing change only cart lines; stock is deducted only at checkout
+      through `change_stock()`.
+   2. Strengthen quantity validation: an integer; at least 1 when adding;
+      capped at current stock; never above the database field's maximum;
+      0 explicitly means remove; negatives rejected, not read as remove.
+      `set_quantity()` returns a structured result with the final quantity
+      and whether it was capped or removed.
+   3. Make `Cart.add()` and `Cart.set_quantity()` safe against simultaneous
+      requests: the unique (cart, product) constraint in the database,
+      concurrent creation of the same line handled, no reliance on a
+      previously loaded quantity, and the stock check and cart update kept
+      consistent.
+   4. "Cart (N)" is the total quantity of active items, not the number of
+      lines; inactive products don't count; an empty cart shows Cart (0);
+      the count is calculated efficiently.
+   5. Pin and verify htmx: exact version, verified release and licence, no
+      CDN at runtime, CSRF on every modifying request, a plain HTML fallback.
+      Stay on htmx 2.x; don't pick a future or prerelease version just
+      because its number is higher.
+3. "Looks good move to next" (approved TDD test 1 at RED).
+4. "Ok lookks good move past green and only stop on red" (after test 1 went
+   GREEN).
+5. Approved TDD test 2 at RED, with one detail: filter inactive products
+   consistently in `contents()`, `item_count()` and the header count, and
+   keep the `CartLine` rows so a reactivated product reappears. "Other than
+   that move onto development."
+
+### Summary
+
+- **Outcome:** a new `cart` app. Logged-in users add products from the
+  catalog and change quantities on `/cart/`. With htmx, the line and cart
+  totals update without a reload and are announced in a live region.
+  Without JavaScript, the same forms post normally and redirect back with a
+  message. Every written quantity is capped at current stock, the customer is
+  told, and the cart never changes stock. Discontinued products are hidden
+  and not counted, but their lines are kept. The header shows "Cart (N)" in
+  total active units. `seed_demo` fills Alex's cart. 321 tests pass (232
+  before), at 99% coverage. `ruff check` and `ruff format --check` are clean.
+  Not committed when this entry was written.
+- **Changes:**
+  - `cart/` (new):
+    - `models.py`: `Cart`, `CartLine` with unique and quantity ≥ 1
+      constraints, `CartUpdate`, `CartContents`, and `Cart.add()` /
+      `set_quantity()` with capping, validation and `MAX_LINE_QUANTITY`.
+      `CartLine.objects.active()`, `contents()` and `item_count()` go
+      through `Product.objects.active()`.
+    - `forms.py`, and `views.py` with `CartView`, `AddToCartView` (safe
+      `next` redirect) and `CartLineView` (an htmx partial or a no-JS
+      redirect).
+    - `urls.py`, `context_processors.py` (a lazy one-query header count),
+      `admin.py`, and migration `0001_initial`.
+  - `cart/tests/`:
+    - `test_cart_rules.py`: the 2 TDD tests.
+    - `test_models.py`: rules, validation, no stock changes, constraints,
+      reactivation.
+    - `test_views.py`: login, persistence, add, no-JS and htmx paths, live
+      region, CSRF, header count and its query cost.
+    - `test_concurrency.py`: real threads.
+    - `factories.py`.
+  - `static/vendor/htmx/htmx-2.0.11.min.js` and `LICENSE` (new): taken from
+    the npm tarball, whose SHA-512 matched the registry's `integrity`; 0BSD
+    licence. `config/tests/test_htmx.py` pins the SHA-256 and version, and
+    checks that only the local copy loads and that the CSRF header is set.
+  - `templates/base.html`: htmx (`defer`, SRI), the `hx-headers` CSRF token,
+    the "Cart (N)" link, and a warning style for messages.
+    `templates/cart/` (new): `detail.html`, `_cart.html`, `_status.html`,
+    `_update.html`. `templates/catalog/index.html`: "Add to cart" for
+    in-stock products, "Log in to order" for visitors.
+    `templates/icons/`: `cart-shopping.svg` and `trash-can.svg` (Font Awesome
+    6.7.2).
+  - `config/settings/base.py`: the `cart` app and its context processor.
+    `config/urls.py`: `/cart/`.
+  - `demo/seed.py`, `demo/management/commands/seed_demo.py`: Alex's cart (5
+    active units plus a hidden discontinued line), filled only when it's
+    empty. `demo/tests/test_seed_demo.py`: 4 new tests.
+  - `dashboard/tests/walk_fixture_urls.py`: includes `cart.urls`, because
+    the header now links to the cart.
+  - `static/css/site.css`: rebuilt.
+  - `docs/architecture.md`, `business-rules.md`, `frontend.md`,
+    `testing.md`, `workflow.md`, `CLAUDE.md`: the cart, htmx, the seed and
+    the tests. `plans/buff-shop.md`: all six Phase 5 criteria ticked.
+- **TDD:**
+  - `test_cart_quantity_capped_at_stock`: RED saved 10 with stock 3. It
+    passed once `set_quantity()` read stock in the same transaction and
+    saved `min(requested, stock)`.
+  - `test_cart_total_ignores_inactive_products`: RED showed the discontinued
+    hoodie at $39.99. It passed once `contents()` and `item_count()` always
+    applied `CartLine.objects.active()`.
+- **Decisions:**
+  - Add to cart puts in 1 and returns to the same catalog page.
+  - Out-of-stock cards have no button. Visitors get "Log in to order".
+  - A cap to 0 removes the line. Removing twice is harmless.
+  - Viewing a cart never changes it. A line above stock gets a text warning
+    instead.
+  - The live region stays in the page and is updated out of band. Focus
+    moves to the heading if the focused button was removed.
+  - Quantity inputs have no `max` and the form has `novalidate`, so the
+    server's message, not a browser tooltip, explains the cap.
+  - `add()` uses conditional UPDATEs (`quantity + n WHERE quantity <= stock
+    - n`, else set to stock), like the stock helper. `add()` and
+    `set_quantity()` also refuse inactive products themselves.
+  - htmx validation errors return 200, so htmx swaps them in.
+  - Staff can use a cart too.
+  - The cart uses current prices; Phase 6 takes the snapshot.
+- **Deviations:** none overridden. The user's five adjustments and the
+  inactive-lines detail were all adopted. On the htmx version, the
+  recommendation was already 2.0.11 (npm's `latest`; 4.x is tagged `next`).
+- **Sideways:**
+  - The first full run had 1 failure:
+    `dashboard/tests/test_walk.py::test_superuser_only_routes_refuse_plain_staff_but_admit_the_superuser`.
+    Its fixture URL list renders the 403 page, whose header now links to
+    `cart:detail`. Fixed by adding `cart.urls` to the fixture, as it already
+    had for `catalog` and `accounts`. The walk's checks are unchanged.
+  - Two test mistakes, fixed:
+    - the anonymous GET case sent its data as a query string, so the
+      `next=` URL didn't match
+    - a redirect to `/?page=2` was followed when only one product existed
+      (a 404 with no messages)
+  - The concurrency tests were checked against a temporary naive
+    read-then-write `add()`. It lost 2 of 4 simultaneous adds and accepted 6
+    adds with stock 3, so both tests failed as they should. The check file
+    was deleted.
+  - Running `migrate` for the seed check also applied the Phase 4 `stock`
+    migration, which the local dev database hadn't had yet. `db.sqlite3` is
+    gitignored.
+  - The full suite takes over 2 minutes, so the first run went to the
+    background, and its cut-off output had to be re-run for the traceback.
+  - Writing this entry through a shell heredoc failed on quoting (nothing
+    was written), so it was saved with the editor tool instead.
+
 ## 2026-11-18 — Buff Shop: Phase 4/18, Safe stock helper, Receive Stock and Stock Adjustment
 
 ### Prompts

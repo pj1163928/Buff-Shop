@@ -1,0 +1,7 @@
+{% comment %}
+htmx response to a quantity change. The main part replaces #cart-contents;
+the two out-of-band parts update the live region and the header count.
+{% endcomment %}
+{% include "cart/_cart.html" %}
+<div id="cart-status" hx-swap-oob="innerHTML">{% include "cart/_status.html" %}</div>
+<span id="cart-count" hx-swap-oob="innerHTML">{{ cart_item_count }}</span>

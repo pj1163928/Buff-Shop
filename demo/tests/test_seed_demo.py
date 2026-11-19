@@ -299,3 +299,59 @@ def test_demo_photos_are_valid_small_and_credited():
             assert photo.width <= 800
         validate_product_image(File(path.open("rb"), name))  # the upload rules accept it
         assert f"`{name}`" in credits, f"{name} has no credit in CREDITS.md"
+
+
+# --- Alex's demo cart ----------------------------------------------------------------
+
+
+def alex_cart_lines():
+    from cart.models import CartLine
+
+    return CartLine.objects.filter(cart__user__email=ALEX.email)
+
+
+def test_seed_fills_alex_cart_with_active_items_and_one_hidden_discontinued_one():
+    output = seed()
+
+    lines = alex_cart_lines()
+    assert lines.count() == 4
+    assert lines.item_count() == 5  # active units, shown as "Cart (5)"
+    assert [line.product.title for line in lines.contents().lines] == [
+        "Buff Hoodie – Medium",
+        "Chemistry Lab Kit",
+        "Lab Safety Goggles",
+    ]
+    assert lines.filter(product__is_active=False).count() == 1
+    assert "Cart: 4 lines put in alex@buffshop.test's cart" in output
+    # Every active line is within stock.
+    assert all(line.quantity <= line.product.stock for line in lines.contents().lines)
+
+
+def test_seeded_cart_changes_no_stock():
+    seed()
+    for title in ("Buff Hoodie – Medium", "Chemistry Lab Kit", "Lab Safety Goggles"):
+        product = Product.objects.get(title=title)
+        assert not StockMovement.objects.filter(product=product, kind=MovementKind.CHECKOUT)
+    assert Product.objects.get(title="Buff Hoodie – Medium").stock == 3
+
+
+def test_rerun_leaves_a_cart_with_items_alone():
+    seed()
+    lines = alex_cart_lines()
+    lines.filter(product__title="Chemistry Lab Kit").delete()
+    lines.filter(product__title="Lab Safety Goggles").update(quantity=7)
+
+    output = seed()
+
+    assert lines.count() == 3
+    assert lines.get(product__title="Lab Safety Goggles").quantity == 7
+    assert "already had items (left unchanged)" in output
+
+
+def test_rerun_refills_an_emptied_cart():
+    seed()
+    alex_cart_lines().delete()
+
+    seed()
+
+    assert alex_cart_lines().count() == 4

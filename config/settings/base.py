@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     "accounts",
     "catalog",
     "stock",
+    "cart",
     "dashboard",
     "demo",
 ]
@@ -46,6 +47,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # "Cart (N)" in the header: lazy, one query, logged-in users only.
+                "cart.context_processors.cart_item_count",
             ],
         },
     },

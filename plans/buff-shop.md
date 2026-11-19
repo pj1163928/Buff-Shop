@@ -211,12 +211,12 @@ Logged-in customers add products to a database cart from the catalog. On the car
 
 ### Acceptance criteria
 
-- [ ] The cart persists per user across sessions and devices.
-- [ ] Quantity updates return updated totals in a live region. A quantity above stock is capped, and the customer is told.
-- [ ] Inactive products don't show in the cart or count toward the total.
-- [ ] Cart pages require login, and there is no guest cart.
-- [ ] Quantity changes work without JavaScript through a normal form submit.
-- [ ] `seed_demo` gives one demo customer a filled cart.
+- [x] The cart persists per user across sessions and devices.
+- [x] Quantity updates return updated totals in a live region. A quantity above stock is capped, and the customer is told.
+- [x] Inactive products don't show in the cart or count toward the total.
+- [x] Cart pages require login, and there is no guest cart.
+- [x] Quantity changes work without JavaScript through a normal form submit.
+- [x] `seed_demo` gives one demo customer a filled cart.
 
 ### TDD
 

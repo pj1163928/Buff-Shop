@@ -3,8 +3,8 @@
 A Django web app for a campus shop. Customers browse the catalog and order to pay at pickup. Staff manage stock, orders, pickup handover and analytics. CIDM 4360 final project.
 
 ## Current state
-- **Source of truth:** [prd/buff-shop.md](prd/buff-shop.md). **Plan:** [plans/buff-shop.md](plans/buff-shop.md) (18 phases, plus rules for every phase). Phases 1–4 are built (accounts; read-only catalog and first `seed_demo`; dashboard shell, the persistent access test and superuser-only `/admin/`; the safe stock helper with Receive Stock, Stock Adjustment and stock history).
-- **Next step:** implement Phase 5 of the plan.
+- **Source of truth:** [prd/buff-shop.md](prd/buff-shop.md). **Plan:** [plans/buff-shop.md](plans/buff-shop.md) (18 phases, plus rules for every phase). Phases 1–5 are built (accounts; read-only catalog and first `seed_demo`; dashboard shell, the persistent access test and superuser-only `/admin/`; the safe stock helper with Receive Stock, Stock Adjustment and stock history; the per-user cart with htmx quantity updates).
+- **Next step:** implement Phase 6 of the plan.
 
 ## Commands
 Python and packages are managed with `uv` (Django 6.1, Python 3.12+).

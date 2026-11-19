@@ -25,6 +25,11 @@ Safe to run repeatedly. What a second run does:
   ``demo/images/``, with alt text describing it. An image that is already
   there, such as one staff uploaded, is never replaced. The photos are
   openly licensed; see ``demo/images/CREDITS.md``.
+* **Alex's cart:** filled only when Alex's cart has no lines at all, so a rerun
+  never undoes changes made during a demo. Active items go in through
+  ``Cart.add()`` (capped at stock; out-of-stock items are skipped). One line
+  holds the discontinued hoodie, which the cart page hides, to show that
+  inactive products are dropped. The cart never changes stock.
 * Nothing else in the database is touched.
 """
 
@@ -37,6 +42,7 @@ from django.core.files import File
 from django.db import transaction
 
 from accounts.models import User
+from cart.models import Cart, CartLine
 from catalog.models import Category, Product
 from stock.models import MovementKind
 from stock.services import change_stock
@@ -270,6 +276,18 @@ DEMO_PRODUCTS: list[DemoProduct] = [
 ]
 
 
+CART_EMAIL = "alex@buffshop.test"
+
+# Alex's demo cart: (product title, quantity). Active items total 5 units, so
+# the header shows "Cart (5)". The discontinued hoodie is stored but hidden.
+DEMO_CART: list[tuple[str, int]] = [
+    ("Buff Hoodie – Medium", 2),
+    ("Chemistry Lab Kit", 1),
+    ("Lab Safety Goggles", 2),
+    ("Buff Hoodie – XS (discontinued)", 1),
+]
+
+
 @dataclass
 class SeedReport:
     """What a seed run did, for the command to print."""
@@ -280,6 +298,8 @@ class SeedReport:
     products_existing: int = 0
     images_attached: int = 0
     stock_changes_recorded: int = 0
+    # Lines put in Alex's cart by this run (0 if the cart already had lines).
+    cart_lines_added: int = 0
 
 
 def _still_has_demo_password(user: User, account: DemoAccount) -> bool:
@@ -360,6 +380,28 @@ def _record_stock_history(product: Product, item: DemoProduct, staff: User) -> i
     return len(history)
 
 
+def _fill_demo_cart() -> int:
+    """Fill Alex's cart if it has no lines. Returns how many lines were added."""
+    user = User.objects.filter(email=CART_EMAIL, is_superuser=False).first()
+    if user is None:
+        return 0
+    cart = Cart.objects.for_user(user)
+    if cart.lines.exists():
+        return 0
+    added = 0
+    for title, quantity in DEMO_CART:
+        product = Product.objects.filter(title=title).first()
+        if product is None:
+            continue
+        if product.is_active:
+            added += not cart.add(product, quantity).removed
+        else:
+            # Cart.add() refuses inactive products; this line exists to be hidden.
+            CartLine.objects.create(cart=cart, product=product, quantity=quantity)
+            added += 1
+    return added
+
+
 def seed_demo() -> SeedReport:
     """Create the demo accounts and products, following the rules in this module's docstring.
 
@@ -394,4 +436,6 @@ def seed_demo() -> SeedReport:
                 report.products_existing += 1
             if _attach_demo_photo(product, item):
                 report.images_attached += 1
+
+        report.cart_lines_added = _fill_demo_cart()
     return report

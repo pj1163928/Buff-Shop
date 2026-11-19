@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Your cart{% endblock %}
+{% block content %}
+<section aria-labelledby="cart-heading">
+  <h1 id="cart-heading" tabindex="-1" class="text-3xl uppercase focus:outline-none sm:text-4xl">Your cart</h1>
+  <p class="mt-2 mb-6 max-w-2xl text-lg">Nothing is reserved until you order, so stock can change while items sit here. You pay in person at pickup.</p>
+
+  {% comment %}
+  Live region: stays in the page, and htmx replaces only what's inside it
+  (out of band), so screen readers announce each update and the new totals.
+  No whitespace inside, so it's :empty (and hidden) until the first update.
+  {% endcomment %}
+  <div id="cart-status" role="status" class="mb-6 empty:hidden"></div>
+
+  {% comment %}
+  htmx swaps the cart in here. Quantity boxes keep their ids, so focus stays
+  in the box being edited. If the focused button was removed (Remove, or a
+  line set to 0), focus moves to the heading instead of being lost.
+  {% endcomment %}
+  <div id="cart-contents" hx-on::after-settle="if (document.activeElement === document.body) document.getElementById('cart-heading').focus()">
+    {% include "cart/_cart.html" %}
+  </div>
+</section>
+{% endblock %}

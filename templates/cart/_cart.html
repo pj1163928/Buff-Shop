@@ -1,0 +1,74 @@
+{% load static %}
+{% comment %}
+The cart's lines and totals. Rendered in the page and, after an htmx update,
+swapped into #cart-contents. Every form is a normal POST without JavaScript;
+the hx-* attributes only upgrade it.
+{% endcomment %}
+{% if cart.lines %}
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem]">
+    <ul role="list" aria-label="Items in your cart" class="divide-y divide-line rounded border border-line bg-white shadow-sm">
+      {% for line in cart.lines %}
+        {% with product=line.product %}
+          <li id="line-{{ product.pk }}" class="flex flex-col gap-4 p-4 sm:flex-row">
+            {% if product.image %}
+              <img src="{{ product.image.url }}" alt="{{ product.alt_text }}" width="128" height="96" class="aspect-[4/3] w-32 shrink-0 rounded object-cover">
+            {% else %}
+              <img src="{% static 'img/product-placeholder.svg' %}" alt="No photo available" width="128" height="96" class="aspect-[4/3] w-32 shrink-0 rounded object-cover">
+            {% endif %}
+
+            <div class="flex flex-1 flex-col gap-2">
+              <h2 class="text-xl">{{ product.title }}</h2>
+              <p class="text-sm text-muted"><span class="sr-only">Category: </span>{{ product.category.name }}</p>
+              <p><span class="sr-only">Price: </span>${{ product.price }} each</p>
+              {% include "catalog/_stock_status.html" with status=product.stock_status %}
+              {% if line.over_stock %}
+                <p class="field-error">{% include "icons/triangle-exclamation.svg" with class="mt-0.5 h-4 w-4" %}<span>Only {{ product.stock }} in stock now. Lower the quantity before you order.</span></p>
+              {% endif %}
+            </div>
+
+            <div class="flex flex-col gap-3 sm:items-end">
+              <form method="post" action="{% url 'cart:line' product.pk %}" novalidate
+                    hx-post="{% url 'cart:line' product.pk %}" hx-target="#cart-contents" hx-swap="innerHTML"
+                    hx-trigger="submit, change delay:500ms" hx-sync="#cart-contents:replace"
+                    class="flex items-end gap-2">
+                {% csrf_token %}
+                <div>
+                  <label for="quantity-{{ product.pk }}" class="mb-1 block font-bold">Quantity<span class="sr-only"> of {{ product.title }}</span></label>
+                  <input type="number" id="quantity-{{ product.pk }}" name="quantity" value="{{ line.quantity }}" min="0" step="1" inputmode="numeric" class="w-24">
+                </div>
+                <button type="submit" class="btn-outline">Update<span class="sr-only"> {{ product.title }}</span></button>
+              </form>
+
+              <p class="text-lg">Line total: <strong>${{ line.line_total }}</strong></p>
+
+              <form method="post" action="{% url 'cart:line' product.pk %}"
+                    hx-post="{% url 'cart:line' product.pk %}" hx-target="#cart-contents" hx-swap="innerHTML"
+                    hx-sync="#cart-contents:replace">
+                {% csrf_token %}
+                <input type="hidden" name="quantity" value="0">
+                <button type="submit" class="inline-flex min-h-11 cursor-pointer items-center gap-2 px-1 font-bold text-danger underline underline-offset-2">
+                  {% include "icons/trash-can.svg" %}Remove<span class="sr-only"> {{ product.title }}</span>
+                </button>
+              </form>
+            </div>
+          </li>
+        {% endwith %}
+      {% endfor %}
+    </ul>
+
+    <aside class="card h-fit" aria-labelledby="summary-heading">
+      <h2 id="summary-heading" class="mb-4 text-2xl">Summary</h2>
+      <dl class="space-y-2 text-lg">
+        <div class="flex justify-between gap-4"><dt>Items</dt><dd id="cart-items">{{ cart.item_count }}</dd></div>
+        <div class="flex justify-between gap-4 border-t border-line pt-2 font-bold"><dt>Total</dt><dd id="cart-total">${{ cart.total }}</dd></div>
+      </dl>
+      <p class="help-text">Pay in person when you pick up your order.</p>
+      <a href="{% url 'catalog:index' %}" class="btn-outline mt-6 w-full">Continue shopping</a>
+    </aside>
+  </div>
+{% else %}
+  <div class="card">
+    <p class="text-lg">Your cart is empty.</p>
+    <a href="{% url 'catalog:index' %}" class="btn-primary mt-4">Browse the catalog</a>
+  </div>
+{% endif %}

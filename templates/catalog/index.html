@@ -33,6 +33,18 @@
             <p class="text-sm text-muted"><span class="sr-only">Category: </span>{{ product.category.name }}</p>
             <p class="mt-auto text-xl font-bold"><span class="sr-only">Price: </span>${{ product.price }}</p>
             {% include "catalog/_stock_status.html" with status=product.stock_status %}
+            {% if user.is_authenticated %}
+              {% if product.stock > 0 %}
+                <form method="post" action="{% url 'cart:add' product.pk %}" class="mt-2">
+                  {% csrf_token %}
+                  <input type="hidden" name="quantity" value="1">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn-primary w-full">{% include "icons/cart-shopping.svg" %} Add to cart<span class="sr-only">: {{ product.title }}</span></button>
+                </form>
+              {% endif %}
+            {% else %}
+              <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="btn-outline mt-2 w-full">Log in to order<span class="sr-only">: {{ product.title }}</span></a>
+            {% endif %}
           </div>
         </li>
       {% endfor %}

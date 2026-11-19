@@ -31,7 +31,7 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 
 ## Layout
 - `config/settings/{base,dev,prod}.py`, `config/urls.py` (includes each app's namespaced URLs).
-- Apps: `accounts/`, `catalog/`, `stock/`, `dashboard/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
+- Apps: `accounts/`, `catalog/`, `stock/`, `cart/`, `dashboard/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
 - `demo/` has no models: it holds `seed_demo` (`demo/seed.py` has the data and rules, the command only prints) and the demo product photos in `demo/images/`.
 - Project templates in `templates/` (`base.html`, `includes/`, `icons/`, one folder per app). Tailwind source in `tailwind/source.css`.
 
@@ -40,6 +40,9 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 |---|---|
 | `catalog:index` | `/`: the catalog (`ProductListView`), 12 per page, `?page=N` |
 | `accounts:signup` / `accounts:login` / `accounts:logout` (POST only) | `/accounts/signup/`, `/accounts/login/`, `/accounts/logout/` |
+| `cart:detail` | `/cart/`: the logged-in user's cart (`CartView`), active lines only, with line and cart totals |
+| `cart:add` (POST only) | `/cart/add/<product_id>/`: add `quantity` (≥ 1) of an active product, then back to the safe `next` URL (default the catalog) |
+| `cart:line` (POST only) | `/cart/lines/<product_id>/`: set a line's `quantity` (0 removes it). htmx gets `cart/_update.html`; without JS it redirects to `/cart/` with a message. 404 if the user has no line for that active product |
 | `dashboard:home` | `/dashboard/`: staff home (`DashboardHomeView`) |
 | `dashboard:product_list` | `/dashboard/products/`: every product incl. inactive, 25 per page, `?page=N`, with a "Manage stock" link per row |
 | `dashboard:product_stock` | `/dashboard/products/<pk>/stock/`: Receive Stock and Stock Adjustment forms (GET/POST) and the product's stock history, newest first, 25 per page |
@@ -58,6 +61,14 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 - **History is append-only.** `save()` on an existing row, `delete()`, and queryset `update()` / `bulk_update()` / `delete()` raise `ImmutableHistoryError`. Correct a count with a new adjustment. `/admin/` shows it view-only.
 - **`stock.services.change_stock(product, change, *, kind, user, reason="", submission_token=None)`** is the one stock helper. See [business-rules.md](business-rules.md#stock-nfr-a2).
 - Forms: `dashboard/forms.py` (`ReceiveStockForm`, `StockAdjustmentForm`, both carrying a one-time hidden token; prefixes `receive-` / `adjust-` and a hidden `action` field tell them apart on the one page).
+
+## Cart
+- `cart.Cart` (one per user, `OneToOneField`; `Cart.objects.for_user(user)` gets or creates it) and `cart.CartLine` (cart, product (CASCADE: a cart isn't history), quantity). DB constraints: one line per cart and product (`cart_cartline_unique_product`), quantity ≥ 1 (`cart_cartline_quantity_gte_1`).
+- **The cart never changes stock** and reserves nothing. Stock moves only at checkout, through `change_stock()`.
+- **`Cart.add(product, quantity=1)`** and **`Cart.set_quantity(product, quantity)`** return a `CartUpdate` (`quantity`, `capped`, `removed`, `available`). Rules are in [business-rules.md](business-rules.md#cart).
+- **`CartLine.objects.for_user(user).contents()`** (a `CartContents` with `lines`, `total`, `item_count`) and **`.item_count()`** (active units, one aggregate query) both apply `CartLine.objects.active()`, which filters through `Product.objects.active()`. Use them for anything a customer sees.
+- Header "Cart (N)": `cart.context_processors.cart_item_count` gives a lazy `cart_item_count` (one query, only if rendered, none for visitors). Views that already loaded the cart pass their own `cart_item_count`, which wins (`cart.views.cart_context`).
+- Admin: Cart with inline lines (superuser only).
 
 ## Dashboard
 - **The one staff check** is `dashboard/access.py`: `StaffRequiredMixin` (active `is_staff`) and `SuperuserRequiredMixin` (also `is_superuser`), built on `UserPassesTestMixin`. Anonymous → redirect to login with `?next=`; logged-in without the role → 403 (`templates/403.html`, "Access denied").

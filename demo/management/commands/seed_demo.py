@@ -1,12 +1,12 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from demo.seed import seed_demo
+from demo.seed import CART_EMAIL, seed_demo
 
 
 class Command(BaseCommand):
     help = (
-        "Create demo accounts, products and product photos for the localhost demo. "
+        "Create demo accounts, products, product photos and a demo cart for the localhost demo. "
         "Safe to run twice. "
         "Refuses to run unless the settings allow it (development only)."
     )
@@ -33,6 +33,13 @@ class Command(BaseCommand):
             f"Stock history: {report.stock_changes_recorded} changes recorded "
             "(only for products created by this run, so stock is never changed twice)."
         )
+        if report.cart_lines_added:
+            self.stdout.write(
+                f"Cart: {report.cart_lines_added} lines put in {CART_EMAIL}'s cart "
+                "(one is a discontinued product the cart page hides)."
+            )
+        else:
+            self.stdout.write(f"Cart: {CART_EMAIL}'s cart already had items (left unchanged).")
         self.stdout.write("")
         self.stdout.write("Demo logins (DEVELOPMENT ONLY, these passwords are public):")
         for account, status, password_works in report.accounts:

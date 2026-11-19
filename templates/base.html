@@ -8,8 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700&family=Oswald:wght@500;600&display=swap">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  {# htmx 2.0.11, served from this site (no CDN). Checked against npm's published hash; 0BSD licence in static/vendor/htmx/LICENSE. #}
+  <script src="{% static 'vendor/htmx/htmx-2.0.11.min.js' %}" integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg" defer></script>
 </head>
-<body class="flex min-h-screen flex-col">
+{# Every htmx request sends the CSRF token. Forms also carry the csrf_token tag, so they work without JavaScript. #}
+<body class="flex min-h-screen flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:px-4 focus:py-3 focus:font-bold focus:text-maroon-900 focus:shadow-lg">Skip to main content</a>
 
   <header class="on-maroon">
@@ -33,6 +36,12 @@
                   </a>
                 </li>
               {% endif %}
+              <li>
+                <a href="{% url 'cart:detail' %}" class="nav-link"{% if request.resolver_match.namespace == 'cart' %} aria-current="page"{% endif %}>
+                  {% include "icons/cart-shopping.svg" %}
+                  Cart (<span id="cart-count">{{ cart_item_count }}</span><span class="sr-only"> items</span>)
+                </a>
+              </li>
               <li class="inline-flex min-h-11 items-center gap-2 px-3 text-sm">
                 {% include "icons/user.svg" %}
                 <span>Hi, {{ user.first_name }}</span>
@@ -70,9 +79,10 @@
     {% if messages %}
       <div role="status" class="mb-6 space-y-2">
         {% for message in messages %}
-          <p class="flex items-start gap-2 rounded border-l-4 px-4 py-3 {% if message.level_tag == 'success' %}border-success bg-success-50 text-success{% elif message.level_tag == 'error' %}border-danger bg-danger-50 text-danger{% else %}border-maroon-900 bg-maroon-50 text-maroon-900{% endif %}">
+          <p class="flex items-start gap-2 rounded border-l-4 px-4 py-3 {% if message.level_tag == 'success' %}border-success bg-success-50 text-success{% elif message.level_tag == 'error' %}border-danger bg-danger-50 text-danger{% elif message.level_tag == 'warning' %}border-warning bg-warning-50 text-warning{% else %}border-maroon-900 bg-maroon-50 text-maroon-900{% endif %}">
             {% if message.level_tag == 'success' %}{% include "icons/circle-check.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Success:</span>
             {% elif message.level_tag == 'error' %}{% include "icons/circle-exclamation.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Error:</span>
+            {% elif message.level_tag == 'warning' %}{% include "icons/triangle-exclamation.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Warning:</span>
             {% else %}{% include "icons/circle-info.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Note:</span>{% endif %}
             <span>{{ message }}</span>
           </p>

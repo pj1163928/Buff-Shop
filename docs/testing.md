@@ -22,6 +22,9 @@ Read when writing or running tests, or finishing a plan phase. Full list: [PRD â
 - **The test database is a SQLite file**, not Django's in-memory default (root `conftest.py`, `django_db_modify_db_settings`). In-memory shared-cache SQLite fails a waiting writer at once with "database table is locked", so it can't test concurrency. `PRAGMA synchronous=OFF` keeps it fast without changing locking.
 - **Stock** (`stock/tests/`): `test_change_stock.py` (the TDD rules, validation, rollback when the history insert fails, tokens, append-only history); `test_concurrency.py` (real threads with their own connections, `django_db(transaction=True)`, released together by a barrier; checked to fail against a naive read-then-write helper); `test_admin.py` (view-only). The dashboard page is in `dashboard/tests/test_stock_page.py`.
 - The negative-stock CHECK constraint is tested on its own in `catalog/tests/test_models.py`.
+- **Cart** (`cart/tests/`, factories `CartFactory`, `CartLineFactory` (writes straight to the DB, no capping)): `test_cart_rules.py` (the two TDD rules: capped at stock, inactive dropped from the total); `test_models.py` (add/set rules, validation, never touching stock, constraints, reactivation); `test_views.py` (login required, persistence across sessions, add, no-JS and htmx paths, live region, CSRF, header count and its query cost); `test_concurrency.py` (threads, like the stock one; checked to fail against a naive `add()`).
+- `config/tests/test_htmx.py` pins the vendored htmx file's hash and version, its licence, and that pages load only the local copy and send the CSRF header.
+- `dashboard/tests/walk_fixture_urls.py` includes `catalog`, `accounts` and `cart` URLs because `base.html` links to them; add any new app the header links to.
 - The test runner swaps in an in-memory mailer, so read `config.settings.dev` directly to check the dev mail config. Use `mailoutbox`/`mail.outbox` for sent mail.
 
 ## Build with TDD (`/tdd`)

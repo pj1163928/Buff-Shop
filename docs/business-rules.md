@@ -15,6 +15,14 @@ Read when touching stock, checkout, order status, cancellation, pickup codes, ac
 - Stock history is append-only (see [architecture.md](architecture.md#stock)). `seed_demo` creates demo stock through the helper too.
 - Stock is read-only on the product edit form.
 
+## Cart
+- Logged-in users only; no guest cart. Stored in the DB per user, so it follows them across devices.
+- **The cart never changes stock** (no reservation, no `StockMovement`). Only checkout deducts, through `change_stock()`.
+- Quantities are whole numbers. Add needs ≥ 1; a line update takes ≥ 0, where **0 means remove**. Negatives are refused, never read as remove. The max is `MAX_LINE_QUANTITY` (the PositiveIntegerField limit).
+- **The server caps every written quantity at current stock** (`CartUpdate.capped`) and tells the customer. If the cap is 0 (out of stock) the line is removed (`removed`). Viewing the cart changes nothing: a line above stock (stock fell later) just shows a warning.
+- Concurrency: the stock read and the line write share one transaction (IMMEDIATE holds SQLite's write lock). `add()` changes the line with conditional UPDATEs on its current DB value (`quantity + n WHERE quantity <= stock - n`, else set to stock), never on a quantity loaded earlier. A simultaneous create of the same line falls back to an update (unique constraint). `cart/tests/test_concurrency.py` checks this and fails against a naive read-then-write `add()`.
+- **Inactive products are dropped, not deleted:** `contents()`, `item_count()` and the header count skip them; `add()`/`set_quantity()` refuse them (`ProductUnavailable`); the views 404. The line stays, so a reactivated product reappears.
+
 ## Checkout (FR-C2)
 - The cart lives in the DB per user. No stock is reserved until checkout.
 - Try every line and collect **all** short items. If any line is short, roll back and name every short item.

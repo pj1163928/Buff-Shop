@@ -55,6 +55,7 @@ dashboard_patterns = [
 urlpatterns = [
     path("", include("catalog.urls")),  # the site layout links to the shop
     path("accounts/", include("accounts.urls")),
+    path("cart/", include("cart.urls")),  # the header links to the cart
     path("dashboard/", include((dashboard_patterns, "dashboard"))),
     path("dashboard-extra/", unguarded_function),  # not under dashboard/
     path("dashboard/stray/", unguarded_function, name="stray"),  # outside the namespace

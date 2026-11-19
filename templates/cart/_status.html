@@ -1,0 +1,7 @@
+{% comment %}What one cart update did, plus the new totals. Goes inside the #cart-status live region.{% endcomment %}
+<p class="flex items-start gap-2 rounded border-l-4 px-4 py-3 {% if status_tag == 'error' %}border-danger bg-danger-50 text-danger{% elif status_tag == 'warning' %}border-warning bg-warning-50 text-warning{% else %}border-success bg-success-50 text-success{% endif %}">
+  {% if status_tag == 'error' %}{% include "icons/circle-exclamation.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Error:</span>
+  {% elif status_tag == 'warning' %}{% include "icons/triangle-exclamation.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Warning:</span>
+  {% else %}{% include "icons/circle-check.svg" with class="mt-1 h-4 w-4" %}<span class="sr-only">Success:</span>{% endif %}
+  <span>{{ status }} Cart total: ${{ cart.total }} for {{ cart.item_count }} item{{ cart.item_count|pluralize }}.</span>
+</p>
