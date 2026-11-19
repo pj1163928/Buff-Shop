@@ -31,7 +31,7 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 
 ## Layout
 - `config/settings/{base,dev,prod}.py`, `config/urls.py` (includes each app's namespaced URLs).
-- Apps: `accounts/`, `catalog/`, `dashboard/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
+- Apps: `accounts/`, `catalog/`, `stock/`, `dashboard/`, `demo/` (more are added by later phases). Tests live in `<app>/tests/`.
 - `demo/` has no models: it holds `seed_demo` (`demo/seed.py` has the data and rules, the command only prints) and the demo product photos in `demo/images/`.
 - Project templates in `templates/` (`base.html`, `includes/`, `icons/`, one folder per app). Tailwind source in `tailwind/source.css`.
 
@@ -41,7 +41,8 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 | `catalog:index` | `/`: the catalog (`ProductListView`), 12 per page, `?page=N` |
 | `accounts:signup` / `accounts:login` / `accounts:logout` (POST only) | `/accounts/signup/`, `/accounts/login/`, `/accounts/logout/` |
 | `dashboard:home` | `/dashboard/`: staff home (`DashboardHomeView`) |
-| `dashboard:product_list` | `/dashboard/products/`: every product incl. inactive, 25 per page, `?page=N` |
+| `dashboard:product_list` | `/dashboard/products/`: every product incl. inactive, 25 per page, `?page=N`, with a "Manage stock" link per row |
+| `dashboard:product_stock` | `/dashboard/products/<pk>/stock/`: Receive Stock and Stock Adjustment forms (GET/POST) and the product's stock history, newest first, 25 per page |
 | admin | `/admin/`, superuser only |
 
 ## Catalog
@@ -51,6 +52,12 @@ Read when creating apps, models, settings or URLs, or deciding where code belong
 - **`catalog.models.stock_status(stock, threshold)`** returns a `StockStatus` choice: `.value` is the stable id (`in_stock`, `low_stock`, `out_of_stock`) and `.label` is the customer wording. `product.stock_status` uses the product's own threshold.
 - Images (`catalog/images.py`): `validate_product_image` (Pillow-detected JPEG/PNG/WebP, max 5 MB) and `product_image_path` (random `products/<uuid>.<ext>`, extension from the detected format). Resizing comes in Phase 13.
 - Admin: Category and Product are registered; product stock is read-only there.
+
+## Stock
+- `stock.StockMovement`: product (PROTECT), change, resulting stock, kind (`MovementKind`: checkout / cancel / receive / adjust), user (PROTECT), `created_at`, reason, `submission_token` (unique, nullable). DB constraints: change ≠ 0, unique token. Phase 6 adds a nullable `order` link.
+- **History is append-only.** `save()` on an existing row, `delete()`, and queryset `update()` / `bulk_update()` / `delete()` raise `ImmutableHistoryError`. Correct a count with a new adjustment. `/admin/` shows it view-only.
+- **`stock.services.change_stock(product, change, *, kind, user, reason="", submission_token=None)`** is the one stock helper. See [business-rules.md](business-rules.md#stock-nfr-a2).
+- Forms: `dashboard/forms.py` (`ReceiveStockForm`, `StockAdjustmentForm`, both carrying a one-time hidden token; prefixes `receive-` / `adjust-` and a hidden `action` field tell them apart on the one page).
 
 ## Dashboard
 - **The one staff check** is `dashboard/access.py`: `StaffRequiredMixin` (active `is_staff`) and `SuperuserRequiredMixin` (also `is_superuser`), built on `UserPassesTestMixin`. Anonymous → redirect to login with `?next=`; logged-in without the role → 403 (`templates/403.html`, "Access denied").

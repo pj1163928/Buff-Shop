@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     # Project apps
     "accounts",
     "catalog",
+    "stock",
     "dashboard",
     "demo",
 ]

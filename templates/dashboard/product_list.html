@@ -13,7 +13,7 @@
 
 {% if products %}
   <div class="overflow-x-auto rounded border border-line bg-white shadow-sm" role="region" aria-labelledby="products-caption" tabindex="0">
-    <table class="w-full min-w-[44rem] text-left">
+    <table class="w-full min-w-[50rem] text-left">
       <caption id="products-caption" class="sr-only">Products, sorted by name</caption>
       <thead class="bg-mist font-display text-sm uppercase tracking-wider">
         <tr>
@@ -23,6 +23,7 @@
           <th scope="col" class="px-4 py-3 text-right">Low-stock threshold</th>
           <th scope="col" class="px-4 py-3 text-right">Price</th>
           <th scope="col" class="px-4 py-3">Category</th>
+          <th scope="col" class="px-4 py-3"><span class="sr-only">Actions</span></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-line">
@@ -34,6 +35,7 @@
             <td class="px-4 py-3 text-right">{{ product.low_stock_threshold }}</td>
             <td class="px-4 py-3 text-right whitespace-nowrap">${{ product.price }}</td>
             <td class="px-4 py-3">{{ product.category.name }}</td>
+            <td class="px-4 py-3 whitespace-nowrap"><a href="{% url 'dashboard:product_stock' product.pk %}" class="inline-flex min-h-6 items-center font-bold">Manage stock<span class="sr-only"> for {{ product.title }}</span></a></td>
           </tr>
         {% endfor %}
       </tbody>

@@ -181,12 +181,12 @@ The same page shows the product's full stock history.
 
 ### Acceptance criteria
 
-- [ ] The helper refuses any change that would take stock below zero and reports the failure. Stock is unchanged.
-- [ ] The CHECK constraint independently rejects a negative stock written without the helper. This is tested on its own.
-- [ ] Every successful change writes exactly one history row with change, resulting stock, kind, user, time and reason.
-- [ ] Receive Stock rejects zero and negative amounts. Stock Adjustment rejects a missing reason.
-- [ ] The stock history page lists movements newest first, with who, when, kind and reason.
-- [ ] `seed_demo` creates some receive and adjust history.
+- [x] The helper refuses any change that would take stock below zero and reports the failure. Stock is unchanged.
+- [x] The CHECK constraint independently rejects a negative stock written without the helper. This is tested on its own.
+- [x] Every successful change writes exactly one history row with change, resulting stock, kind, user, time and reason.
+- [x] Receive Stock rejects zero and negative amounts. Stock Adjustment rejects a missing reason.
+- [x] The stock history page lists movements newest first, with who, when, kind and reason.
+- [x] `seed_demo` creates some receive and adjust history.
 
 ### TDD
 

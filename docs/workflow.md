@@ -25,7 +25,7 @@ Other skills:
 
 ## Demo data
 - `uv run python manage.py seed_demo` (code in `demo/seed.py`). Refuses unless `ALLOW_DEMO_SEED` is True (dev settings only).
-- So far it creates 5 accounts and 16 products (15 active, some low or out of stock, plus 1 inactive), each with a placeholder photo from `demo/images/`. Later phases add orders in every status.
+- So far it creates 5 accounts and 16 products (15 active, some low or out of stock, plus 1 inactive), each with a placeholder photo from `demo/images/`. A product it creates starts at 0 and reaches its demo stock through receive and adjust history recorded by the staff account (`DemoProduct.history`, which must add up to `stock`). Products that already existed get no history, so to see it on an older database, delete `db.sqlite3`, `migrate`, then seed. Later phases add orders in every status.
 - Photos: a product with no image (or a missing file) gets its demo photo; an existing image is never replaced. Every demo product must name an `image` and `alt_text`, and every photo must be credited in `demo/images/CREDITS.md` (a test checks both). Use only CC0, public-domain or CC BY images, at most 800 px wide.
 - **Development-only logins** (public, printed by the command):
 

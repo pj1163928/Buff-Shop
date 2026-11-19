@@ -12,7 +12,8 @@ from PIL import Image
 from accounts.models import User
 from catalog.images import validate_product_image
 from catalog.models import Product, StockStatus
-from demo.seed import DEMO_ACCOUNTS, DEMO_IMAGE_DIR, DEMO_PRODUCTS
+from demo.seed import DEMO_ACCOUNTS, DEMO_IMAGE_DIR, DEMO_PRODUCTS, stock_history_for
+from stock.models import MovementKind, StockMovement
 
 pytestmark = pytest.mark.django_db
 
@@ -163,6 +164,70 @@ def test_refuses_under_production_settings(tmp_path):
     assert result.returncode != 0
     assert "development only" in result.stderr
     assert not (tmp_path / "prod.sqlite3").exists()
+
+
+# --- Stock history ----------------------------------------------------------------
+
+
+def test_every_demo_products_history_adds_up_to_its_demo_stock():
+    for item in DEMO_PRODUCTS:
+        assert sum(step.change for step in stock_history_for(item)) == item.stock, item.title
+
+
+def test_seed_reaches_each_demo_stock_through_recorded_history():
+    output = seed()
+    staff = User.objects.get(email=STAFF.email)
+    for item in DEMO_PRODUCTS:
+        product = Product.objects.get(title=item.title)
+        movements = list(product.stock_movements.order_by("pk"))
+        assert product.stock == item.stock, item.title
+        assert sum(m.change for m in movements) == item.stock
+        assert all(m.user == staff for m in movements)
+        if movements:
+            assert movements[-1].resulting_stock == item.stock
+    expected = sum(len(stock_history_for(item)) for item in DEMO_PRODUCTS)
+    assert f"Stock history: {expected} changes recorded" in output
+
+
+def test_seed_creates_receive_and_adjust_history_with_reasons():
+    seed()
+    adjustments = StockMovement.objects.filter(kind=MovementKind.ADJUST)
+    assert StockMovement.objects.filter(kind=MovementKind.RECEIVE).exists()
+    assert adjustments.filter(change__lt=0).exists()
+    assert adjustments.filter(change__gt=0).exists()
+    assert all(a.reason for a in adjustments)
+    goggles = Product.objects.get(title="Lab Safety Goggles")
+    assert [(m.kind, m.change) for m in goggles.stock_movements.order_by("pk")] == [
+        ("receive", 24),
+        ("receive", 8),
+        ("adjust", -2),
+    ]
+
+
+def test_rerun_records_no_new_history_and_leaves_stock_alone():
+    seed()
+    before = StockMovement.objects.count()
+    stock = dict(Product.objects.values_list("title", "stock"))
+
+    output = seed()
+
+    assert StockMovement.objects.count() == before
+    assert dict(Product.objects.values_list("title", "stock")) == stock
+    assert "Stock history: 0 changes recorded" in output
+
+
+def test_existing_products_get_no_history():
+    """A database seeded before Phase 4 keeps its stock exactly as it was."""
+    seed()
+    hoodie = Product.objects.get(title="Buff Hoodie – Small")
+    hoodie_movements = hoodie.stock_movements.count()
+    Product.objects.filter(pk=hoodie.pk).update(stock=50)  # e.g. counted by hand
+
+    seed()
+
+    hoodie.refresh_from_db()
+    assert hoodie.stock == 50
+    assert hoodie.stock_movements.count() == hoodie_movements
 
 
 # --- Product photos -------------------------------------------------------------

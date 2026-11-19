@@ -32,4 +32,5 @@ POST = frozenset({"POST"})
 DASHBOARD_ROUTES: dict[str, RouteSpec] = {
     "dashboard:home": RouteSpec(GET),
     "dashboard:product_list": RouteSpec(GET),
+    "dashboard:product_stock": RouteSpec(GET_POST, kwargs={"pk": 1}),
 }

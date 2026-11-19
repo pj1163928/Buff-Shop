@@ -4,9 +4,15 @@ Read when touching stock, checkout, order status, cancellation, pickup codes, ac
 
 ## Stock (NFR-A2)
 - `select_for_update()` is a no-op on SQLite. Don't rely on it.
-- One helper does every stock change. It runs a conditional single-statement update, e.g. `filter(pk=..., stock__gte=qty).update(stock=F("stock") - qty)`, inside `transaction.atomic()`, and checks the number of rows changed.
-- A DB `CheckConstraint` enforces `stock >= 0`.
-- Callers: checkout, cancel/restore, Receive Stock (+N), Stock Adjustment (±N, reason required). Each one writes a stock history row.
+- **`stock.services.change_stock()`** does every stock change. Inside one `transaction.atomic()` (which takes SQLite's write lock at once, IMMEDIATE mode) it:
+  1. refuses a reused `submission_token` (`DuplicateSubmission`);
+  2. runs one conditional UPDATE, `filter(pk=…, stock__gte=-change).update(stock=F("stock") + change)`, i.e. `WHERE stock + change >= 0`, and checks exactly one row changed, else raises `InsufficientStock` (with `.available`);
+  3. reads the resulting stock back and writes **exactly one** `StockMovement`. If that insert fails, the UPDATE rolls back with it. Stock never changes without history.
+- Rules it enforces (`ValueError`, nothing changed): a whole number, never 0, at most `MAX_STOCK_CHANGE` (10,000) either way; receive and cancel add, checkout removes, adjust goes either way; an adjust needs a reason (trimmed, at most 200 characters). Receive notes are optional.
+- It's safe inside an outer transaction: a refusal raises before anything is written, so checkout can catch `InsufficientStock` per line and carry on collecting short items.
+- A DB `CheckConstraint` enforces `stock >= 0` as the second, independent safeguard.
+- Callers: checkout, cancel/restore, Receive Stock (+N), Stock Adjustment (±N, reason required). The stock forms carry a one-time token, so a double click applies a change once.
+- Stock history is append-only (see [architecture.md](architecture.md#stock)). `seed_demo` creates demo stock through the helper too.
 - Stock is read-only on the product edit form.
 
 ## Checkout (FR-C2)

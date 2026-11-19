@@ -27,6 +27,120 @@ Each entry has this shape:
     - **Outcome:** what was built and what was kept
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
+## 2026-11-18 — Buff Shop: Phase 4/18, Safe stock helper, Receive Stock and Stock Adjustment
+
+### Prompts
+
+1. The `/implement` skill, given `buff-shop.md phase 4`.
+2. Four adjustments to the brief before building (pasted):
+   1. Make stock changes atomic, including history: validate, run the
+      conditional update, read the resulting stock, create exactly one
+      history row, and roll everything back if the history insert fails.
+      Never let stock change without a history entry.
+   2. Strengthen the conditional UPDATE: enforce `stock + :change >= 0` in
+      SQL, not with a Python-side check, and verify exactly one row changed.
+   3. Clarify validation: Receive is positive only with an optional reason;
+      Adjustment is positive or negative with a required reason; zero is
+      rejected; an adjustment beyond available stock is rejected. Enforce the
+      10,000-unit limit server-side.
+   4. Add ordinary tests for concurrency (two simultaneous deductions can't
+      go negative), rollback (a failed history insert rolls back the stock
+      update; a failed update writes no history), and repeated form
+      submissions not duplicating a change. Verify real behaviour rather
+      than assume IMMEDIATE works.
+   Plus: keep `StockMovement` immutable; the admin read-only, and no
+   ordinary code path may edit or delete history. Corrections are new
+   adjustments.
+3. "Everything looks good move to next" (approved TDD test 1).
+4. "This looks good move to next" (approved TDD test 2).
+
+### Summary
+
+- **Outcome:** a new `stock` app with the one stock helper,
+  `change_stock()`, and an append-only `StockMovement` history. A staff
+  stock page at `/dashboard/products/<pk>/stock/` has Receive Stock, Stock
+  Adjustment and the product's history, newest first. `seed_demo` brings new
+  demo products to their stock through recorded receives and adjustments.
+  232 tests pass (160 before), at 100% line and branch coverage. `ruff check`
+  and `ruff format --check` are clean. Not committed when this entry was
+  written.
+- **Changes:**
+  - `stock/` (new): `models.py` has `StockMovement`, `MovementKind`,
+    `ImmutableHistoryError`, and a queryset that refuses `update()`,
+    `bulk_update()` and `delete()`. The DB refuses a 0 change and a reused
+    submission token. `services.py` has `change_stock()`, `InsufficientStock`,
+    `DuplicateSubmission` and `MAX_STOCK_CHANGE`. `admin.py` is view-only.
+    There is one migration, `0001_initial`.
+  - `stock/tests/`: `test_change_stock.py` (the TDD rules, validation,
+    rollback, tokens, immutability), `test_concurrency.py` (real threads)
+    and `test_admin.py`.
+  - `dashboard/forms.py` (new): `ReceiveStockForm` and
+    `StockAdjustmentForm`, each with a one-time hidden token.
+  - `dashboard/views.py`, `urls.py`, `tests/routes.py`: `ProductStockView`
+    (`dashboard:product_stock`, GET/POST), registered with the access walk.
+  - `templates/dashboard/product_stock.html` (new), plus a "Manage stock"
+    link per row in `product_list.html`. Three Font Awesome icons (truck,
+    sliders, clock-rotate-left).
+  - `dashboard/tests/test_stock_page.py` (new): forms, validation, the
+    refusal message, double posts, history order and pagination.
+  - `demo/seed.py`, the `seed_demo` command and its tests: `DemoProduct.history`;
+    new products start at 0 and reach their stock through the helper, and
+    existing products get no history.
+  - `conftest.py`: the test database is now a SQLite file with
+    `synchronous=OFF` (see Sideways).
+  - `config/settings/base.py`: `stock` installed.
+  - `static/css/site.css`: rebuilt.
+  - Docs: `architecture.md`, `business-rules.md`, `testing.md`,
+    `workflow.md`, and the `CLAUDE.md` current state. The plan's Phase 4
+    criteria are ticked.
+- **TDD:** two behaviours, each seen RED on an assertion and then GREEN:
+  (1) a change that would go negative is refused, and stock and history are
+  unchanged; (2) a successful change writes exactly one history row with
+  change, resulting stock, kind, user and time. The plan's third behaviour
+  (the DB CHECK constraint) was already built and tested in Phase 2
+  (`catalog/tests/test_models.py`), so it couldn't go RED and was left as an
+  existing test.
+- **Decisions:**
+  - The helper raises `InsufficientStock` rather than returning `False`,
+    so a caller can't ignore a refusal by mistake.
+  - The `order` link on `StockMovement` waits for Phase 6.
+  - One URL serves both forms, told apart by a hidden `action` field and
+    form prefixes.
+  - There is a 10,000-unit cap, enforced in the helper as well as the forms.
+  - History shows 25 per page.
+  - The helper stamps `created_at` itself.
+  - `StockMovement` uses PROTECT for its product and user, so neither can
+    be deleted while it has history.
+  - The seed only writes history for products it creates, so an older
+    `db.sqlite3` needs a fresh start to show it.
+- **Deviations:** the user's four adjustments, plus immutability, were all
+  adopted. Their SQL condition `stock + change >= 0` is implemented as the
+  equivalent `stock >= -change`. The one-time submission token was added to
+  make "repeated submissions can't duplicate" hold for double clicks, not
+  only page refreshes. Because history became immutable, the planned
+  backdating of seed history was dropped.
+- **Sideways:**
+  - The concurrency tests first failed with "database table is locked".
+    Django's default in-memory shared-cache test database fails a waiting
+    writer at once instead of honouring the busy timeout, so it doesn't
+    behave like `db.sqlite3`. The fix was a file-based test database. That
+    raised the suite from 79 s to 198 s; `synchronous=OFF` brought it to
+    146 s.
+  - A concurrency test was wrong: starting at 5, the deductions could
+    legitimately dip below 0 depending on order. It now starts at 6 and
+    checks that the history forms one unbroken chain.
+  - To prove the concurrency tests aren't vacuous, a naive
+    read-check-write helper was swapped in temporarily. All three tests
+    failed, and the real helper was restored and checked byte-for-byte.
+  - Two page tests were wrong at first. The double-post test expected one
+    message where a real double click shows two. The history-order test
+    patched `timezone.now`, but the model default had already captured the
+    real function; the helper now sets `created_at` explicitly.
+  - TDD test 2 first failed with `DoesNotExist` rather than an assertion,
+    so an explicit count assertion was added before the `.get()`.
+  - A bash heredoc failed on quoting while appending tests; the file was
+    edited with the editor tool instead.
+
 ## 2026-11-18 — Polish: demo product photos, README sign-ins
 
 ### Prompts

@@ -29,6 +29,10 @@ class Command(BaseCommand):
             f"Product photos: {report.images_attached} attached "
             "(an existing image is never replaced; credits in demo/images/CREDITS.md)."
         )
+        self.stdout.write(
+            f"Stock history: {report.stock_changes_recorded} changes recorded "
+            "(only for products created by this run, so stock is never changed twice)."
+        )
         self.stdout.write("")
         self.stdout.write("Demo logins (DEVELOPMENT ONLY, these passwords are public):")
         for account, status, password_works in report.accounts:

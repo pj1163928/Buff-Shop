@@ -15,6 +15,11 @@ Safe to run repeatedly. What a second run does:
 * **Products:** created if missing (matched by title). An existing product is
   left as it is: its stock is never overwritten and an inactive product is
   never reactivated. The one exception is the photo below.
+* **Stock history:** a product created by this run starts at 0 and reaches its
+  demo stock through recorded stock changes (deliveries, plus a few
+  adjustments), made by the demo staff account through the stock helper.
+  Products that already existed get no new history, so a rerun never
+  duplicates history or changes stock.
 * **Product photos:** a demo product with no image (or whose image file has
   gone missing from ``media/``) gets its placeholder photo from
   ``demo/images/``, with alt text describing it. An image that is already
@@ -33,6 +38,8 @@ from django.db import transaction
 
 from accounts.models import User
 from catalog.models import Category, Product
+from stock.models import MovementKind
+from stock.services import change_stock
 
 
 @dataclass(frozen=True)
@@ -54,6 +61,23 @@ DEMO_ACCOUNTS: list[DemoAccount] = [
 
 
 @dataclass(frozen=True)
+class DemoStockChange:
+    """One recorded stock change in a demo product's history, oldest first."""
+
+    kind: MovementKind  # RECEIVE or ADJUST
+    change: int
+    reason: str = ""
+
+
+def received(amount: int, note: str = "") -> DemoStockChange:
+    return DemoStockChange(MovementKind.RECEIVE, amount, note)
+
+
+def adjusted(change: int, reason: str) -> DemoStockChange:
+    return DemoStockChange(MovementKind.ADJUST, change, reason)
+
+
+@dataclass(frozen=True)
 class DemoProduct:
     title: str
     category: str
@@ -62,11 +86,17 @@ class DemoProduct:
     description: str
     threshold: int = 5
     is_active: bool = True
+    # How the stock got there, oldest first. It must add up to ``stock``.
+    # Left empty, a product with stock gets one delivery of that amount.
+    history: tuple[DemoStockChange, ...] = ()
     # Required for every demo product (keyword-only): a file in demo/images/
     # credited in CREDITS.md, and alt text describing that photo.
     image: str = field(kw_only=True)
     alt_text: str = field(kw_only=True)
 
+
+# The account that records the demo stock history.
+STAFF_EMAIL = next(a.email for a in DEMO_ACCOUNTS if a.role == "staff")
 
 # Openly licensed placeholder photos, 800 x 600 JPEGs. Credits: images/CREDITS.md.
 DEMO_IMAGE_DIR = Path(__file__).resolve().parent / "images"
@@ -91,6 +121,10 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "112.50",
         4,
         "Relational design, SQL and normalisation, with worked examples.",
+        history=(
+            received(6, "Fall semester order"),
+            adjusted(-2, "2 copies water-damaged in storage"),
+        ),
         image="database-systems.jpg",
         alt_text="Rows of server racks in a data centre",
     ),
@@ -100,6 +134,10 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "74.00",
         0,
         "Supply, demand and market structures for ECON 2302.",
+        history=(
+            received(10, "Publisher delivery"),
+            adjusted(-10, "Wrong edition delivered, returned to the publisher"),
+        ),
         image="microeconomics.jpg",
         alt_text="Three stacks of coins, each taller than the last",
     ),
@@ -137,6 +175,7 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "44.99",
         3,
         "Maroon fleece hoodie with the Buffs wordmark.",
+        history=(received(4), adjusted(-1, "Display sample, taken off sale")),
         **HOODIE_PHOTO,
     ),
     DemoProduct(
@@ -171,6 +210,7 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "5.99",
         2,
         "Maroon lanyard with a safety breakaway. Slow seller: threshold 1.",
+        history=(received(1), adjusted(+1, "Recount: found 1 in the back room")),
         threshold=1,
         image="lanyard.jpg",
         alt_text="A teal fabric lanyard laid out flat",
@@ -209,6 +249,11 @@ DEMO_PRODUCTS: list[DemoProduct] = [
         "12.99",
         30,
         "Anti-fog splash goggles that fit over glasses.",
+        history=(
+            received(24, "Opening delivery"),
+            received(8, "Top-up order"),
+            adjusted(-2, "2 pairs cracked in storage"),
+        ),
         image="safety-goggles.jpg",
         alt_text="Clear safety glasses with blue arms",
     ),
@@ -234,6 +279,7 @@ class SeedReport:
     products_created: int = 0
     products_existing: int = 0
     images_attached: int = 0
+    stock_changes_recorded: int = 0
 
 
 def _still_has_demo_password(user: User, account: DemoAccount) -> bool:
@@ -294,6 +340,26 @@ def _attach_demo_photo(product: Product, item: DemoProduct) -> bool:
     return True
 
 
+def stock_history_for(item: DemoProduct) -> tuple[DemoStockChange, ...]:
+    """The stock changes that bring ``item`` from 0 to its demo stock, oldest first."""
+    if item.history:
+        return item.history
+    if item.stock:
+        return (received(item.stock, "Opening delivery"),)
+    return ()
+
+
+def _record_stock_history(product: Product, item: DemoProduct, staff: User) -> int:
+    """Bring a newly created ``product`` to its demo stock through the stock helper.
+
+    Returns how many stock changes were recorded.
+    """
+    history = stock_history_for(item)
+    for step in history:
+        change_stock(product, step.change, kind=step.kind, user=staff, reason=step.reason)
+    return len(history)
+
+
 def seed_demo() -> SeedReport:
     """Create the demo accounts and products, following the rules in this module's docstring.
 
@@ -305,6 +371,7 @@ def seed_demo() -> SeedReport:
         for account in DEMO_ACCOUNTS:
             status, password_works = _seed_account(account)
             report.accounts.append((account, status, password_works))
+        staff = User.objects.get(email=STAFF_EMAIL)
 
         for item in DEMO_PRODUCTS:
             category, _ = Category.objects.get_or_create(name=item.category)
@@ -314,13 +381,15 @@ def seed_demo() -> SeedReport:
                     "category": category,
                     "description": item.description,
                     "price": Decimal(item.price),
-                    "stock": item.stock,
+                    # Starts at 0; the stock history below brings it to item.stock.
+                    "stock": 0,
                     "low_stock_threshold": item.threshold,
                     "is_active": item.is_active,
                 },
             )
             if created:
                 report.products_created += 1
+                report.stock_changes_recorded += _record_stock_history(product, item, staff)
             else:
                 report.products_existing += 1
             if _attach_demo_photo(product, item):

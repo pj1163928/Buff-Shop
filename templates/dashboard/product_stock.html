@@ -1,0 +1,109 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Stock: {{ product.title }} · Dashboard{% endblock %}
+{% block dashboard_content %}
+<p class="mb-3">
+  <a href="{% url 'dashboard:product_list' %}" class="inline-flex min-h-6 items-center gap-1 font-bold">{% include "icons/chevron-left.svg" %} All products</a>
+</p>
+
+<div class="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+  <div>
+    <h1 class="text-3xl uppercase sm:text-4xl">Stock: {{ product.title }}</h1>
+    <p class="mt-2 text-muted">{{ product.category.name }} · low-stock threshold {{ product.low_stock_threshold }}</p>
+  </div>
+  <div class="text-right" id="current-stock">
+    <p class="text-lg">In stock now: <strong class="text-2xl">{{ product.stock }}</strong></p>
+    <div class="mt-1 flex justify-end">{% include "dashboard/_product_badges.html" with product=product %}</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+  <section class="card" aria-labelledby="receive-heading">
+    <h2 id="receive-heading" class="mb-1 flex items-center gap-2 text-xl">{% include "icons/truck.svg" with class="h-5 w-5" %} Receive Stock</h2>
+    <p class="mb-4">Record a delivery. The amount is added to stock.</p>
+    {% with form=receive_form %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="{{ form.action }}">
+        {{ form.token }}
+        {% include "includes/form_errors.html" %}
+        {% include "includes/field.html" with field=form.amount %}
+        {% include "includes/field.html" with field=form.reason %}
+        <button type="submit" class="btn-primary">Receive Stock</button>
+      </form>
+    {% endwith %}
+  </section>
+
+  <section class="card" aria-labelledby="adjust-heading">
+    <h2 id="adjust-heading" class="mb-1 flex items-center gap-2 text-xl">{% include "icons/sliders.svg" with class="h-5 w-5" %} Stock Adjustment</h2>
+    <p class="mb-4">Correct the count after breakage, loss or a miscount. Stock can't go below zero.</p>
+    {% with form=adjust_form %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="{{ form.action }}">
+        {{ form.token }}
+        {% include "includes/form_errors.html" %}
+        {% include "includes/field.html" with field=form.amount %}
+        {% include "includes/field.html" with field=form.reason %}
+        <button type="submit" class="btn-primary">Save Adjustment</button>
+      </form>
+    {% endwith %}
+  </section>
+</div>
+
+<section class="mt-10" aria-labelledby="history-heading">
+  <div class="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+    <h2 id="history-heading" class="flex items-center gap-2 text-2xl">{% include "icons/clock-rotate-left.svg" with class="h-5 w-5" %} Stock history</h2>
+    {% if history.paginator.count %}
+      <p class="text-muted">Newest first · showing {{ history.start_index }}–{{ history.end_index }} of {{ history.paginator.count }} change{{ history.paginator.count|pluralize }}</p>
+    {% endif %}
+  </div>
+
+  {% if history %}
+    <div class="overflow-x-auto rounded border border-line bg-white shadow-sm" role="region" aria-labelledby="history-caption" tabindex="0">
+      <table class="w-full min-w-[44rem] text-left">
+        <caption id="history-caption" class="sr-only">Stock history for {{ product.title }}, newest first</caption>
+        <thead class="bg-mist font-display text-sm uppercase tracking-wider">
+          <tr>
+            <th scope="col" class="px-4 py-3">When</th>
+            <th scope="col" class="px-4 py-3">Kind</th>
+            <th scope="col" class="px-4 py-3 text-right">Change</th>
+            <th scope="col" class="px-4 py-3 text-right">Stock after</th>
+            <th scope="col" class="px-4 py-3">By</th>
+            <th scope="col" class="px-4 py-3">Reason</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-line">
+          {% for movement in history %}
+            <tr id="movement-{{ movement.pk }}">
+              <th scope="row" class="px-4 py-3 font-normal whitespace-nowrap"><time datetime="{{ movement.created_at|date:'c' }}">{{ movement.created_at|date:"M j, Y, g:i a" }}</time></th>
+              <td class="px-4 py-3">{{ movement.get_kind_display }}</td>
+              <td class="px-4 py-3 text-right font-bold">{{ movement.change|stringformat:"+d" }}</td>
+              <td class="px-4 py-3 text-right">{{ movement.resulting_stock }}</td>
+              <td class="px-4 py-3">{{ movement.user.get_full_name }}</td>
+              <td class="px-4 py-3">{{ movement.reason|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if history.has_other_pages %}
+      <nav aria-label="Stock history pages" class="mt-6 flex flex-wrap items-center justify-between gap-3">
+        {% if history.has_previous %}
+          <a href="?page={{ history.previous_page_number }}" rel="prev" class="btn-outline">{% include "icons/chevron-left.svg" %} Newer<span class="sr-only"> changes</span></a>
+        {% else %}
+          <span></span>
+        {% endif %}
+        <p class="font-bold">Page {{ history.number }} of {{ history.paginator.num_pages }}</p>
+        {% if history.has_next %}
+          <a href="?page={{ history.next_page_number }}" rel="next" class="btn-outline">Older<span class="sr-only"> changes</span> {% include "icons/chevron-right.svg" %}</a>
+        {% else %}
+          <span></span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="card">No stock changes have been recorded for this product yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
